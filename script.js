@@ -143,7 +143,7 @@ const sticky=document.querySelector('.sequence-sticky');
 const sequence=document.querySelector('.sequence');
 const title=document.getElementById('stepTitle'),text=document.getElementById('stepText'),kicker=document.getElementById('stepKicker'),num=document.getElementById('stepNumber');
 const dots=[...document.querySelectorAll('.progress-dot')];
-let current=0;
+let current=-1;
 const stageVideos=[...document.querySelectorAll('.stage-video')];
 const stagePlay=document.getElementById('stagePlayControl');
 
@@ -266,9 +266,24 @@ const projectData = {
     {name:"Establishment of Aquatourism Project", scheme:"PMMSY"},
     {name:"Establishment of Cluster Biofloc Tanks for Magur and Singi Farming", scheme:"—"}
   ],
-  "West Bengal": [
-    {name:"Establishment of Integrated Hatchery to Processing Unit with Retail Outlet Facility", scheme:"—", count:4}
-  ],
+ "West Bengal": [
+  {
+    name: "Establishment of Integrated Hatchery to Processing Unit with Retail Outlet Facility",
+    scheme: "—"
+  },
+  {
+    name: "West Bengal Aquaculture Development Project",
+    scheme: "—"
+  },
+  {
+    name: "West Bengal Fish Processing and Value Addition Project",
+    scheme: "—"
+  },
+  {
+    name: "West Bengal Sustainable Fisheries Development Project",
+    scheme: "—"
+  }
+],
   "Telangana": [
     {name:"Establishment of Intensive Murrel Farming in HDPE-Lined Tanks with Retail Outlet", scheme:"PMMSY"},
     {name:"Strengthening of Primary Fisheries Cooperatives", scheme:"PM-MKSSY"},
