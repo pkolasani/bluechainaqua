@@ -2053,6 +2053,87 @@ body.bca-lightbox-open{overflow:hidden}
 @media(max-width:780px){.readiness-hero{min-height:420px;border-radius:0 0 20px 20px}.readiness-hero-copy{width:100%;height:58%;bottom:auto;padding:28px 18px 22px;justify-content:flex-start;background:linear-gradient(180deg,#eefbfd 0%,rgba(238,251,253,.98) 52%,rgba(238,251,253,.62) 82%,rgba(238,251,253,0) 100%)}.readiness-hero-copy h2{font-size:43px;max-width:560px}.readiness-hero-copy p{font-size:12px;max-width:520px}.readiness-hero-visual,.readiness-hero-visual img{height:420px;min-height:420px}.readiness-hero-visual img{object-position:61% center}.hero-impact-pill{width:180px;height:82px;right:5%;top:232px}.hero-impact-pill strong{font-size:17px}.hero-impact-pill span{font-size:38px}.hero-route-one{left:48%;top:72%}.hero-route-two{left:65%;top:78%;width:150px}.hero-pin-one{left:54%;top:63%}.hero-pin-two{left:72%;top:75%}.hero-stage-badge{right:5%;bottom:18px;font-size:10px}.readiness-head{margin:0 14px;padding:14px;border-radius:16px}.readiness-topics{grid-template-columns:1fr;gap:8px}.readiness-topics>div{min-height:0;padding:10px}.readiness-flow{grid-template-columns:1fr;gap:12px;padding:16px 14px}.readiness-image{height:205px}.readiness-card-body{min-height:145px}.readiness-final{margin:0 14px;display:flex;flex-direction:column;align-items:stretch;border-radius:18px}.readiness-final-copy{padding:20px}.readiness-final-image{height:190px;order:2}.readiness-final-pills{order:3;margin:0 14px 14px;grid-template-columns:1fr 1fr}.readiness-final h3{font-size:25px}}
 @media(max-width:480px){.readiness-hero{min-height:390px}.readiness-hero-copy{height:60%;padding:24px 16px 18px}.readiness-hero-copy h2{font-size:37px}.readiness-hero-copy p{font-size:11.5px}.readiness-hero-visual,.readiness-hero-visual img{height:390px;min-height:390px}.hero-impact-pill{width:160px;height:70px;top:224px}.hero-impact-pill strong{font-size:15px}.hero-impact-pill span{font-size:32px}.hero-stage-badge{padding:7px 11px}.readiness-image{height:185px}.readiness-final-pills{grid-template-columns:1fr}}
 
+
+/* =========================================================
+   PROJECT MAP — MOBILE COMPATIBILITY
+   The real Leaflet India map remains the only map. These rules
+   prevent narrow screens, nested scrolling and browser resize
+   events from distorting the map or project panel.
+   ========================================================= */
+.completed-projects-panel,
+.project-map-card,
+.project-details{
+  min-width:0;
+  width:100%;
+}
+.project-map-card{overflow:hidden}
+.india-projects-map{position:relative;width:100%;touch-action:pan-x pan-y}
+.project-map-status{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  padding:28px;
+  text-align:center;
+  color:#174354;
+  font:700 13px/1.4 Manrope,sans-serif;
+}
+.project-map-status-icon{
+  width:42px;height:42px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#e6f8f7;color:#08a8b5;
+  font-size:25px;
+}
+.project-map-status span{font-size:10px;font-weight:600;color:#78919a}
+.project-map-status button{
+  border:0;border-radius:999px;padding:9px 15px;
+  background:#0aa8bc;color:#fff;cursor:pointer;
+  font:800 10px Manrope,sans-serif;
+}
+.leaflet-container{font-family:Manrope,sans-serif}
+.leaflet-control-zoom a{
+  width:34px!important;height:34px!important;
+  line-height:34px!important;
+}
+@media(max-width:900px){
+  .completed-projects-panel{grid-template-columns:1fr;gap:18px}
+  .project-details{min-height:0}
+}
+@media(max-width:780px){
+  .india-projects-map{
+    height:400px!important;
+    margin:0!important;
+    border-radius:14px;
+  }
+  .project-map-card{border-radius:18px}
+  .map-head{padding-left:2px;padding-right:2px}
+  .map-instructions{gap:10px;font-size:8px}
+  .map-source{font-size:8px}
+  .project-details{
+    padding:18px!important;
+    min-height:0!important;
+    overflow:hidden;
+  }
+  .state-project-list{
+    max-height:none!important;
+    overflow:visible!important;
+    padding-right:0!important;
+  }
+  .state-project h4{font-size:12px;line-height:1.45}
+  .state-project p{font-size:10px}
+}
+@media(max-width:480px){
+  .india-projects-map{height:350px!important}
+  .project-details h3{font-size:28px!important}
+  .project-count{font-size:8px}
+  .state-project{padding:13px}
+}
+@media(orientation:landscape) and (max-width:780px){
+  .india-projects-map{height:320px!important}
+}
+
 /* Fullscreen project image viewer */
 .bca-image-lightbox{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(1,27,38,.88);backdrop-filter:blur(10px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s ease;z-index:10050}
 .bca-image-lightbox.is-open{opacity:1;visibility:visible;pointer-events:auto}

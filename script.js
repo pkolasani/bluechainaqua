@@ -153,68 +153,188 @@ function renderStateProjects(state){
 function setupProjectTabs(){}
 
 let projectMap=null;
-function renderProjectMapFallback(){
+let projectMapLayer=null;
+let projectMapResizeObserver=null;
+
+function showProjectMapMessage(message, retry=false){
   const mapEl=document.getElementById('indiaProjectsMap');
   if(!mapEl) return;
-  const states=[
-    ['Kerala','7%','74%'],
-    ['Andhra Pradesh','48%','72%'],
-    ['Telangana','45%','60%'],
-    ['Odisha','66%','49%'],
-    ['West Bengal','78%','43%']
-  ];
   mapEl.innerHTML=`
-    <div class="india-fallback-map" aria-label="Blue Chain Aqua India project coverage map">
-      <div class="fallback-outline" aria-hidden="true"></div>
-      <div class="fallback-title">INDIA • PROJECT COVERAGE</div>
-      ${states.map(([name,left,top])=>`<button type="button" class="fallback-state" data-state="${name}" style="left:${left};top:${top}">${name}<b>${(projectData[name]||[]).reduce((sum,p)=>sum+(p.count||1),0)}</b></button>`).join('')}
-      <div class="fallback-note">Click a highlighted state to view its projects</div>
+    <div class="project-map-status" role="status">
+      <div class="project-map-status-icon">⌁</div>
+      <strong>${message}</strong>
+      ${retry ? '<button type="button" id="projectMapRetry">Retry map</button>' : '<span>Loading India state boundaries…</span>'}
     </div>`;
-  mapEl.querySelectorAll('.fallback-state').forEach(btn=>btn.addEventListener('click',()=>renderStateProjects(btn.dataset.state)));
+  if(retry) document.getElementById('projectMapRetry')?.addEventListener('click',setupProjectMap,{once:true});
+}
+
+function renderProjectMapFallback(){
+  // Do not render the old fake/silhouette map. If a remote map source is
+  // unavailable, keep the UI honest and provide a retry action instead.
+  showProjectMapMessage('India map could not be loaded.',true);
   renderStateProjects('Andhra Pradesh');
+}
+
+function getProjectMapOptions(){
+  const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
+  return {
+    zoomControl:true,
+    scrollWheelZoom:false,
+    dragging:!touch,
+    doubleClickZoom:!touch,
+    touchZoom:touch,
+    boxZoom:false,
+    keyboard:!touch,
+    attributionControl:false,
+    zoomSnap:.25,
+    zoomDelta:.5,
+    zoomControlPosition:touch?'topright':'topleft',
+    tap:true
+  };
+}
+
+async function fetchProjectGeoJSON(){
+  // Keep two independent sources so a mobile carrier/CDN issue does not
+  // replace the real India map with a fake fallback.
+  const geoUrls=[
+    'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@HEAD/geojson/india.geojson',
+    'https://raw.githubusercontent.com/udit-001/india-maps-data/main/geojson/india.geojson'
+  ];
+  for(const geoUrl of geoUrls){
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),12000);
+    try{
+      const res=await fetch(geoUrl,{cache:'no-store',signal:controller.signal,credentials:'omit'});
+      if(res.ok){
+        const geo=await res.json();
+        if(geo && geo.features?.length) return geo;
+      }
+    }catch(e){
+      // Try the next source.
+    }finally{
+      clearTimeout(timeout);
+    }
+  }
+  throw new Error('Map data could not be loaded from either source');
+}
+
+function refitProjectMap(){
+  if(!projectMap || !projectMapLayer) return;
+  requestAnimationFrame(()=>{
+    projectMap.invalidateSize({pan:false,debounceMoveend:true});
+    const bounds=projectMapLayer.getBounds();
+    if(bounds.isValid()){
+      const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
+      projectMap.fitBounds(bounds,{
+        padding:touch?[10,10]:[18,18],
+        maxZoom:touch?5.25:6,
+        animate:false
+      });
+    }
+  });
 }
 
 async function setupProjectMap(){
   const mapEl=document.getElementById('indiaProjectsMap');
   if(!mapEl) return;
-  if(typeof L==='undefined'){ renderProjectMapFallback(); return; }
-  projectMap=L.map(mapEl,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,touchZoom:true,boxZoom:false,keyboard:true,attributionControl:false,zoomSnap:.25,zoomDelta:.5,zoomControlPosition:'topleft'});
-  L.control.attribution({prefix:false}).addAttribution('India map data: udit-001/india-maps-data');
-  const geoUrls=[
-    'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@main/geojson/india.geojson',
-    'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@HEAD/geojson/india.geojson'
-  ];
+
+  // Cleanly reinitialize on a manual retry.
+  if(projectMap){
+    projectMap.remove();
+    projectMap=null;
+    projectMapLayer=null;
+  }
+  if(projectMapResizeObserver){
+    projectMapResizeObserver.disconnect();
+    projectMapResizeObserver=null;
+  }
+
+  if(typeof L==='undefined'){
+    showProjectMapMessage('Map library is still loading…');
+    setTimeout(setupProjectMap,600);
+    return;
+  }
+
+  showProjectMapMessage('Loading India project map…');
+
   try{
-    let geo=null;
-    for(const geoUrl of geoUrls){
-      try{
-        const res=await fetch(geoUrl,{cache:'no-store'});
-        if(!res.ok) continue;
-        geo=await res.json();
-        if(geo && geo.features) break;
-      }catch(e){}
-    }
-    if(!geo || !geo.features) throw new Error('Map data could not be loaded');
-    const layer=L.geoJSON(geo,{style:feature=>{
-      const state=projectStateName(feature.properties||{});
-      const active=activeProjectStates.has(state);
-      return {color:active?'#0b7789':'#b8ced2',weight:active?1.7:.65,fillColor:active?'#39c7c8':'#dfeceb',fillOpacity:active?.82:.55};
-    },onEachFeature:(feature,layer)=>{
-      const state=projectStateName(feature.properties||{});
-      const active=activeProjectStates.has(state);
-      layer.on({
-        mouseover:e=>{e.target.setStyle({weight:active?2.8:1.2,fillOpacity:active?1:.75});e.target.bringToFront();},
-        mouseout:e=>{layer.setStyle({color:active?'#0b7789':'#b8ced2',weight:active?1.7:.65,fillColor:active?'#39c7c8':'#dfeceb',fillOpacity:active?.82:.55});},
-        click:()=>{renderStateProjects(active?state:state); if(active) document.getElementById('selectedStateName')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
-      });
-      if(active){ layer.bindTooltip(state,{permanent:false,direction:'top',className:'map-hover-label',opacity:.98,sticky:true}); }
-    }}).addTo(projectMap);
-    projectMap.fitBounds(layer.getBounds(),{padding:[15,15]});
+    projectMap=L.map(mapEl,getProjectMapOptions());
+    L.control.attribution({prefix:false}).addAttribution('India map data: udit-001/india-maps-data');
+
+    const geo=await fetchProjectGeoJSON();
+
+    projectMapLayer=L.geoJSON(geo,{
+      style:feature=>{
+        const state=projectStateName(feature.properties||{});
+        const active=activeProjectStates.has(state);
+        return {
+          color:active?'#0b7789':'#b8ced2',
+          weight:active?1.7:.65,
+          fillColor:active?'#39c7c8':'#dfeceb',
+          fillOpacity:active?.82:.55
+        };
+      },
+      onEachFeature:(feature,layer)=>{
+        const state=projectStateName(feature.properties||{});
+        const active=activeProjectStates.has(state);
+        layer.on({
+          mouseover:e=>{
+            const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
+            if(touch) return;
+            e.target.setStyle({weight:active?2.8:1.2,fillOpacity:active?1:.75});
+            e.target.bringToFront();
+          },
+          mouseout:e=>{
+            layer.setStyle({
+              color:active?'#0b7789':'#b8ced2',
+              weight:active?1.7:.65,
+              fillColor:active?'#39c7c8':'#dfeceb',
+              fillOpacity:active?.82:.55
+            });
+          },
+          click:()=>{
+            renderStateProjects(active?state:state);
+            if(active && window.innerWidth<=780){
+              document.getElementById('selectedStateName')?.scrollIntoView({
+                behavior:'smooth',
+                block:'start'
+              });
+            }
+          }
+        });
+        if(active){
+          layer.bindTooltip(state,{
+            permanent:false,
+            direction:'top',
+            className:'map-hover-label',
+            opacity:.98,
+            sticky:true
+          });
+        }
+      }
+    }).addTo(projectMap);
+
     renderStateProjects('Andhra Pradesh');
+    refitProjectMap();
+
+    // Leaflet must be told about its final mobile dimensions after CSS/layout,
+    // especially after orientation changes and browser UI resizing.
+    const resize=()=>refitProjectMap();
+    window.addEventListener('resize',resize,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(refitProjectMap,250),{passive:true});
+
+    if('ResizeObserver' in window){
+      projectMapResizeObserver=new ResizeObserver(()=>refitProjectMap());
+      projectMapResizeObserver.observe(mapEl);
+    }
+
+    projectMap.whenReady(()=>setTimeout(refitProjectMap,80));
   }catch(err){
     projectMap?.remove();
     projectMap=null;
-    renderProjectMapFallback();
+    projectMapLayer=null;
+    showProjectMapMessage('India map could not be loaded.',true);
+    renderStateProjects('Andhra Pradesh');
   }
 }
 

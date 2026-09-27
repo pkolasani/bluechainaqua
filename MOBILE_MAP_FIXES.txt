@@ -1,0 +1,9 @@
+Blue Chain Aqua mobile compatibility fixes
+
+- Keeps the real Leaflet India state map on mobile; removes the old fake/silhouette fallback from the runtime.
+- Adds a second GeoJSON source (GitHub Raw) if jsDelivr is unavailable.
+- Recalculates map bounds after mobile layout/orientation/size changes.
+- Prevents nested project-list scrolling on phones.
+- Makes the map panel and project details width-safe on narrow screens.
+- Uses touch-friendly Leaflet zoom controls and avoids hover-only behavior on touch devices.
+- Keeps the existing five project states and click-to-view project details behavior.
