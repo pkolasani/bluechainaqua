@@ -38,6 +38,36 @@
     var audioChunks = [];
     var voiceOutput = true;
     var currentAudio = null;
+    var navigatingAway = false;
+
+    // Stop every active voice/recording operation. This is intentionally exposed
+    // so navigation and page lifecycle handlers can call it too.
+    function stopAllVoice() {
+      navigatingAway = true;
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      if (currentAudio) {
+        try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {}
+        currentAudio = null;
+      }
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch (e) {}
+      }
+      if (mediaRecorder && mediaRecorder.stream) {
+        try { mediaRecorder.stream.getTracks().forEach(function (track) { track.stop(); }); } catch (e) {}
+      }
+      mediaRecorder = null;
+      audioChunks = [];
+      recording = false;
+      if (mic) {
+        mic.classList.remove('recording');
+        mic.textContent = '🎙️';
+        mic.setAttribute('aria-label', 'Speak your question');
+      }
+    }
+
+    window.BCA_STOP_VOICE = stopAllVoice;
 
     var localized = {
       English: {
@@ -242,7 +272,7 @@
     }
 
     function speakText(text) {
-      if (!('speechSynthesis' in window) || !text) return;
+      if (navigatingAway || !('speechSynthesis' in window) || !text) return;
       try {
         window.speechSynthesis.cancel();
         var utter = new SpeechSynthesisUtterance(text);
@@ -316,6 +346,10 @@
           mic.classList.remove('recording');
           mic.textContent = '🎙️';
           mic.setAttribute('aria-label', 'Speak your question');
+          if (navigatingAway) {
+            audioChunks = [];
+            return;
+          }
           if (!audioChunks.length) {
             setVoiceStatus(localized[language.value].noSpeech);
             return;
@@ -410,7 +444,7 @@
         conversationMessages.push({ role: 'assistant', text: answer });
         if (history.length > 8) history = history.slice(-8);
         saveCurrentSession();
-        if (voiceOutput) speakText(answer);
+        if (voiceOutput && !navigatingAway) speakText(answer);
       } catch (err) {
         console.error('Blue Chain Aqua AI error:', err);
         typing.textContent = localized[selectedLanguage].error + ' (' + (err.message || 'request failed') + ')';
@@ -420,7 +454,7 @@
         send.disabled = false;
         mic.disabled = false;
         input.disabled = false;
-        input.focus();
+        if (!navigatingAway) input.focus();
         messages.scrollTop = messages.scrollHeight;
       }
     }
@@ -447,6 +481,7 @@
 
     launch.addEventListener('click', function (event) {
       event.preventDefault(); event.stopPropagation();
+      navigatingAway = false;
       if (panel.hidden) openPanel(); else closePanel();
     });
 
@@ -491,6 +526,21 @@
         });
       });
     }
+
+    // Navigation must immediately silence the assistant, including same-page hash navigation.
+    document.addEventListener('click', function (event) {
+      var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+      if (!link) return;
+      var href = link.getAttribute('href') || '';
+      if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) return;
+      var isNavigation = href.charAt(0) === '#' || href.indexOf(window.location.origin) === 0 || /^[./]/.test(href);
+      if (isNavigation) stopAllVoice();
+    }, true);
+
+    window.addEventListener('hashchange', stopAllVoice);
+    window.addEventListener('popstate', stopAllVoice);
+    window.addEventListener('pagehide', stopAllVoice);
+    window.addEventListener('beforeunload', stopAllVoice);
 
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && !panel.hidden) closePanel();

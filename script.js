@@ -1,4 +1,11 @@
 const intro=document.getElementById('siteIntro');
+// Some Android browsers (especially when Desktop Site was previously enabled)
+// report a desktop-sized viewport. Mark touch devices explicitly so the mobile
+// layout still activates reliably.
+if (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+  document.documentElement.classList.add('bca-touch');
+}
+
 const introVideo=document.getElementById('introVideo');
 const introSkip=document.getElementById('introSkip');
 const introProgress=intro?.querySelector('.site-intro-progress span');
@@ -63,7 +70,11 @@ renderStep(0);
 
 const menu=document.querySelector('.menu'),nav=document.querySelector('.header nav');
 menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu')});
-nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');menu?.setAttribute('aria-expanded','false')}));
+nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+  if (window.BCA_STOP_VOICE) window.BCA_STOP_VOICE();
+  nav.classList.remove('open');
+  menu?.setAttribute('aria-expanded','false');
+}));
 const reveal=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');reveal.unobserve(e.target)}}),{threshold:.1});
 document.querySelectorAll('.journey-intro,.section,.service-grid article,.planning-card,.planning-strip>div,.step,.ops-grid>*,.cta-box').forEach(x=>{x.classList.add('reveal');reveal.observe(x)});
 document.querySelector('.sequence-bg-video')?.addEventListener('canplay',e=>e.target.play().catch(()=>{}));
@@ -306,4 +317,96 @@ document.querySelectorAll('.ops-stats > div').forEach((card,index)=>{
     window.open(url, '_blank', 'noopener,noreferrer');
   });
 
+})();
+
+/* Idle water ambience: after 30 seconds of no user movement while Project Readiness is visible. */
+(function setupIdleWater(){
+  const section = document.getElementById('planning');
+  if(!section || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const scene = document.createElement('div');
+  scene.className = 'idle-water-scene';
+  scene.setAttribute('aria-hidden','true');
+  for(let i=0;i<10;i++){
+    const bubble=document.createElement('span');
+    bubble.className='idle-water-bubble';
+    scene.appendChild(bubble);
+  }
+  section.appendChild(scene);
+
+  let idleTimer=null;
+  let sectionVisible=false;
+  let active=false;
+  const IDLE_MS=30000;
+
+  const visibilityObserver=new IntersectionObserver(entries=>{
+    sectionVisible=entries[0]?.isIntersecting===true && entries[0].intersectionRatio>=0.28;
+    if(!sectionVisible){
+      clearTimeout(idleTimer);
+      idleTimer=null;
+      active=false;
+      scene.classList.remove('is-active');
+    }else{
+      resetIdle();
+    }
+  },{threshold:[0,.28,.5]});
+  visibilityObserver.observe(section);
+
+  function activate(){
+    if(!sectionVisible || active) return;
+    active=true;
+    scene.classList.add('is-active');
+  }
+  function resetIdle(){
+    clearTimeout(idleTimer);
+    active=false;
+    scene.classList.remove('is-active');
+    if(sectionVisible) idleTimer=setTimeout(activate,IDLE_MS);
+  }
+
+  ['pointermove','pointerdown','touchstart','keydown','wheel','scroll','click'].forEach(type=>{
+    window.addEventListener(type,resetIdle,{passive:type!=='keydown'});
+  });
+})();
+
+
+/* Project image lightbox — click/tap any readiness image to view it clearly. */
+(function setupReadinessLightbox(){
+  function init(){
+    const items=[...document.querySelectorAll('.readiness-image')];
+    if(!items.length || document.querySelector('.bca-image-lightbox')) return;
+    const overlay=document.createElement('div');
+    overlay.className='bca-image-lightbox';
+    overlay.innerHTML=`<button class="bca-lightbox-close" type="button" aria-label="Close image">×</button><figure class="bca-lightbox-figure"><img alt=""><figcaption></figcaption></figure>`;
+    document.body.appendChild(overlay);
+    const img=overlay.querySelector('img'), caption=overlay.querySelector('figcaption'), close=overlay.querySelector('.bca-lightbox-close');
+    let lastFocus=null;
+    function open(item){
+      const source=item.querySelector('img'); if(!source) return;
+      lastFocus=document.activeElement;
+      // Use the original high-resolution image in the lightbox; cards intentionally use small thumbnails.
+      const fullSrc=source.dataset.fullSrc || source.getAttribute('data-full-src') || source.src;
+      img.src=fullSrc;
+      img.alt=source.alt||'';
+      caption.textContent=source.alt||'';
+      overlay.classList.add('is-open');
+      document.body.classList.add('bca-lightbox-open');
+      close.focus();
+    }
+    function hide(){
+      overlay.classList.remove('is-open');
+      document.body.classList.remove('bca-lightbox-open');
+      img.src='';
+      if(lastFocus && typeof lastFocus.focus==='function') lastFocus.focus();
+    }
+    items.forEach(item=>{
+      item.addEventListener('click',e=>{ if(e.target.closest('.readiness-next')) return; open(item); });
+      item.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open(item);} });
+    });
+    document.querySelectorAll('.readiness-next').forEach((btn,i)=>btn.addEventListener('click',e=>{e.stopPropagation();open(items[i]);}));
+    close.addEventListener('click',hide);
+    overlay.addEventListener('click',e=>{if(e.target===overlay) hide();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('is-open')) hide();});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();

@@ -1,0 +1,11 @@
+Blue Chain Aqua — Project Readiness visual refresh
+
+Updated to match the approved “Projects made easy to understand” reference:
+- Large aquaculture hero visual with From Idea to Impact treatment
+- Project Readiness section with Site / System / Finance cards
+- Six compact project journey cards with arrows and stage icons
+- Integrated final-stage banner with project support highlights
+- Responsive desktop/tablet/mobile layout
+- Click/tap project images to open the fullscreen lightbox; close with X, Escape, or backdrop click
+- Existing 30-second idle water animation retained
+- Existing project images and other site sections retained

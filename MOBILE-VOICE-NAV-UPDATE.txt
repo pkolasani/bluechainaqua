@@ -1,0 +1,11 @@
+Blue Chain Aqua update
+
+Changes in this build:
+- Mobile/touch navigation is forced into the compact hamburger layout, including Android browsers that expose a desktop-sized viewport.
+- The immersive home/journey sequence is resized and repositioned for phone screens so the text and visual remain readable.
+- Aqua AI voice output stops immediately when the visitor navigates to another section/page.
+- Active microphone recording is stopped on navigation and its tracks are released.
+- Browser speech synthesis is cancelled on hash navigation, back/forward navigation, pagehide and beforeunload.
+- No Groq API key is stored in config.js; production API calls use the Vercel serverless endpoints.
+
+Deploy by replacing the existing Vercel project files with this folder and redeploying.
