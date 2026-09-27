@@ -1,0 +1,20 @@
+BLUE CHAIN AQUA — UNIVERSAL RESPONSIVE UPDATE
+
+This version includes a final responsive safety layer for:
+- Desktop / large desktop
+- Laptop widths
+- Tablet portrait and landscape
+- iPhone / Android phone portrait and landscape
+- Android/iOS browser "Desktop site" mode
+- Narrow screens down to 320px
+
+Key changes:
+- Added viewport-fit=cover to the viewport meta tag.
+- Added runtime viewport classification (phone/tablet/desktop) using viewport, touch and screen characteristics.
+- Phone layouts are forced even when Android Desktop Site reports a desktop-width CSS viewport.
+- Prevented horizontal overflow and fixed-width content compression.
+- Reworked the opening stage sequence on touch phones/tablets so it is a frozen/tap-controlled stage experience instead of an 800vh scroll trap.
+- Made Project Coverage map + Selected State stack cleanly on phones.
+- Made contact, legal, organizations, services, planning and readiness sections responsive.
+- Preserved desktop behavior and existing project/map data.
+- Preserved reduced-motion accessibility support.

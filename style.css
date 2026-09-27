@@ -2134,6 +2134,79 @@ body.bca-lightbox-open{overflow:hidden}
   .india-projects-map{height:320px!important}
 }
 
+
+/* =========================================================
+   MOBILE PROJECTS EXPLORER — HARD TOUCH OVERRIDES
+   Android/iOS browsers can expose a wider CSS viewport while
+   still rendering a narrow physical screen. The bca-touch class
+   is added by script.js for those devices, so the project map
+   and selected-state panel always stack instead of squeezing
+   the selected-state content into the top-right corner.
+   ========================================================= */
+html.bca-touch .projects-section,
+html.bca-touch .projects-section .wrap,
+html.bca-touch .completed-projects-panel,
+html.bca-touch .project-map-card,
+html.bca-touch .project-details{
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box;
+}
+html.bca-touch .completed-projects-panel{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:16px !important;
+  align-items:stretch !important;
+}
+html.bca-touch .project-map-card,
+html.bca-touch .project-details{
+  grid-column:1 / -1 !important;
+}
+html.bca-touch .project-details{
+  margin:0 !important;
+  overflow:visible !important;
+}
+html.bca-touch .state-project-list{
+  width:100%;
+  max-height:none !important;
+  overflow:visible !important;
+}
+html.bca-touch .map-head{
+  align-items:flex-start;
+}
+html.bca-touch .projects-heading{
+  width:100%;
+}
+html.bca-touch .projects-summary{
+  max-width:100%;
+}
+@media (max-width:900px){
+  .completed-projects-panel{
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  .project-details{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    margin-top:0;
+  }
+}
+@media (max-width:600px){
+  .projects-section .wrap{width:min(94%,680px);}
+  .projects-heading{gap:16px;}
+  .projects-heading h2{font-size:clamp(36px,10vw,46px);}
+  .projects-heading p{font-size:12px;line-height:1.55;}
+  .projects-summary{width:100% !important;display:grid;grid-template-columns:1fr 1fr;}
+  .projects-summary div{min-width:0 !important;}
+  .project-map-card,.project-details{border-radius:16px;}
+  .map-head{padding:18px 18px 10px !important;}
+  .india-projects-map{height:360px !important;margin:0 8px !important;border-radius:14px;}
+  .project-details{padding:18px !important;}
+  .project-details h3{font-size:28px !important;overflow-wrap:anywhere;}
+  .state-project h4,.state-project p{overflow-wrap:anywhere;}
+}
+
 /* Fullscreen project image viewer */
 .bca-image-lightbox{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(1,27,38,.88);backdrop-filter:blur(10px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s ease;z-index:10050}
 .bca-image-lightbox.is-open{opacity:1;visibility:visible;pointer-events:auto}
@@ -2147,3 +2220,547 @@ body.bca-lightbox-open{overflow:hidden}
 .fallback-note{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);font:700 10px Manrope;color:#64808b;white-space:nowrap}
 .fallback-state{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid rgba(255,255,255,.9);border-radius:999px;background:rgba(7,74,91,.94);color:#fff;box-shadow:0 10px 24px rgba(3,65,82,.16);font:800 9px Manrope;cursor:pointer}
 .fallback-state b{display:grid;place-items:center;min-width:19px;height:19px;border-radius:50%;background:#19c3c9;color:#fff;font-size:8px}
+
+/* =========================================================
+   MOBILE STAGE EXPERIENCE — tap to change/play, no scroll-jacking
+   The first screen stays fixed like a video player. Users tap a
+   numbered stage or the play control to view the selected stage.
+   ========================================================= */
+@media (max-width:780px), (hover:none) and (pointer:coarse) {
+  .sequence {
+    height:100svh !important;
+    min-height:640px;
+    max-height:100svh;
+    overflow:hidden;
+  }
+  .sequence-sticky {
+    position:relative !important;
+    inset:auto !important;
+    top:auto !important;
+    height:100svh !important;
+    min-height:640px !important;
+    overflow:hidden;
+  }
+  .sequence-progress {
+    left:7%;
+    right:7%;
+    top:78px;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:flex-start;
+    gap:7px;
+    z-index:20;
+  }
+  .progress-dot {
+    width:30px !important;
+    height:30px !important;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    border:1px solid rgba(132,230,235,.30);
+    background:rgba(2,35,50,.55);
+    color:rgba(255,255,255,.72);
+    font:800 8px/1 Manrope;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .progress-dot.active {
+    width:34px !important;
+    height:34px !important;
+    color:#fff;
+    background:#0aa9bf;
+    border-color:#71edf0;
+    box-shadow:0 0 0 4px rgba(15,204,213,.12),0 8px 20px rgba(0,0,0,.22);
+  }
+  .stage-play-control {
+    position:absolute;
+    z-index:25;
+    left:7%;
+    top:122px;
+    border:1px solid rgba(119,235,238,.42);
+    border-radius:999px;
+    padding:8px 13px;
+    background:rgba(2,31,45,.62);
+    color:#fff;
+    font:800 9px/1 Manrope;
+    letter-spacing:.03em;
+    backdrop-filter:blur(10px);
+    box-shadow:0 8px 22px rgba(0,0,0,.16);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .stage-play-control.is-playing {
+    background:rgba(7,169,190,.88);
+    border-color:rgba(150,250,250,.7);
+  }
+  .sequence-counter { top:78px !important; right:7% !important; }
+  .sequence-copy {
+    top:23% !important;
+    left:7% !important;
+    width:86% !important;
+    transform:none !important;
+    z-index:12;
+  }
+  .sequence-copy p { max-width:330px; }
+  .scene {
+    top:49% !important;
+    width:100vw !important;
+    height:43svh !important;
+    min-height:250px !important;
+    max-height:390px !important;
+    left:0 !important;
+    right:auto !important;
+    opacity:1 !important;
+    z-index:8;
+  }
+  .scene-object.has-video .stage-video { cursor:pointer; }
+  .sequence-metrics { z-index:15; }
+  .scroll-hint { display:none !important; }
+}
+
+/* Compact contact section on phones — avoid large vertical gaps. */
+@media (max-width:600px), (hover:none) and (pointer:coarse) {
+  .contact-section { padding:18px 0 30px !important; }
+  .contact-whatsapp-banner { margin:0 0 12px !important; }
+  .contact-whatsapp-link { min-height:62px !important; padding:8px 11px !important; grid-template-columns:34px minmax(0,1fr) 34px !important; gap:8px !important; border-radius:22px !important; }
+  .contact-whatsapp-icon,.contact-whatsapp-arrow { width:34px !important; height:34px !important; font-size:15px !important; }
+  .contact-whatsapp-copy strong { font-size:12px !important; }
+  .contact-whatsapp-copy small { font-size:7px !important; }
+  .contact-whatsapp-number { font-size:8px !important; }
+  .contact-main-grid { gap:12px !important; }
+  .contact-form-card,.contact-info-card { padding:16px 13px !important; border-radius:17px !important; }
+  .contact-card-heading { gap:9px !important; margin-bottom:12px !important; }
+  .contact-heading-icon { width:36px !important; height:36px !important; flex-basis:36px !important; font-size:16px !important; }
+  .contact-card-heading h2 { font-size:20px !important; }
+  .contact-card-heading p { font-size:8px !important; margin-top:3px !important; }
+  .contact-form-card .enquiry-grid { gap:8px !important; }
+  .contact-form-card .enquiry-grid label>span { font-size:8px !important; }
+  .contact-form-card .enquiry-grid input { height:42px !important; padding:0 11px !important; font-size:10px !important; border-radius:10px !important; }
+  .contact-form-card .enquiry-grid textarea { min-height:100px !important; padding:10px 11px !important; font-size:10px !important; border-radius:10px !important; }
+  .contact-form-card .enquiry-actions { margin-top:9px !important; gap:6px !important; flex-direction:row !important; align-items:center !important; }
+  .contact-form-card .whatsapp-submit { min-height:40px !important; width:auto !important; padding:0 14px !important; font-size:9px !important; border-radius:22px !important; }
+  .contact-form-card .enquiry-note { font-size:7px !important; }
+  .contact-methods { grid-template-columns:repeat(3,1fr) !important; gap:7px !important; margin-bottom:14px !important; }
+  .contact-method { min-height:80px !important; display:flex !important; padding:8px 4px !important; border-radius:10px !important; text-align:center !important; }
+  .method-icon { width:32px !important; height:32px !important; margin-bottom:5px !important; font-size:14px !important; }
+  .contact-method strong { font-size:8px !important; }
+  .contact-method small { margin-top:3px !important; font-size:6px !important; white-space:nowrap; }
+  .contact-discuss { padding-top:14px !important; }
+  .contact-discuss h3,.contact-follow h3 { font-size:17px !important; }
+  .contact-discuss>p { margin:5px 0 9px !important; font-size:8px !important; }
+  .discussion-grid { gap:6px !important; }
+  .discussion-grid span { min-height:42px !important; padding:7px !important; border-radius:9px !important; font-size:7px !important; }
+  .contact-follow { margin-top:14px !important; padding-top:12px !important; gap:8px !important; flex-direction:row !important; align-items:center !important; }
+  .contact-follow h3 { font-size:14px !important; }
+  .contact-social-icons { width:auto !important; gap:5px !important; }
+  .contact-social-icons a { width:32px !important; height:32px !important; border-radius:8px !important; }
+  .contact-social-icons img { width:16px !important; height:16px !important; }
+}
+
+
+/* =========================================================
+   UNIVERSAL RESPONSIVE SAFETY LAYER
+   Covers desktop, laptop, tablet, phone and mobile "Desktop
+   site" mode.  This block intentionally comes last so it wins
+   over the older section-specific media rules above.
+   ========================================================= */
+html,body{max-width:100%;overflow-x:hidden}
+img,video,svg,canvas{max-width:100%}
+button,input,textarea,select{font:inherit;max-width:100%}
+.wrap{width:min(1280px,calc(100% - 48px))}
+
+/* Touch phones: force a real phone composition even if the browser reports
+   a desktop-sized CSS viewport (Android Desktop site / Samsung Internet). */
+html.bca-phone .wrap{width:calc(100% - 28px)}
+html.bca-phone .header{height:64px;padding:0 14px}
+html.bca-phone .brand{min-width:0;max-width:150px}
+html.bca-phone .brand-image{width:118px;height:52px}
+html.bca-phone .menu{display:flex;margin-left:auto;margin-right:0;padding:9px}
+html.bca-phone .header nav{display:none;position:absolute;top:64px;left:10px;right:10px;padding:8px 16px;gap:0;flex-direction:column;background:rgba(255,255,255,.98);border:1px solid #dcecf0;border-radius:0 0 18px 18px;box-shadow:0 18px 40px rgba(3,42,67,.14)}
+html.bca-phone .header nav.open{display:flex}
+html.bca-phone .header nav a{padding:11px 2px;border-bottom:1px solid #edf3f5;font-size:11px}
+html.bca-phone .header-cta{display:none}
+
+/* Hero: no 800vh scroll trap on phones. The stage is frozen and controlled
+   by the numbered buttons / play control. */
+html.bca-phone .sequence{height:auto!important;min-height:0}
+html.bca-phone .sequence-sticky{position:relative;height:auto;min-height:690px;max-height:none;top:auto}
+html.bca-phone .sequence-copy{left:16px;top:32%;width:min(76vw,330px);transform:translateY(-40%)}
+html.bca-phone .sequence-copy h1{font-size:clamp(39px,12vw,52px);letter-spacing:-2px;line-height:.94;margin-bottom:16px}
+html.bca-phone .sequence-copy p{font-size:11px;line-height:1.55;max-width:290px;margin-bottom:16px}
+html.bca-phone .sequence-kicker{font-size:7px;letter-spacing:1.4px;margin-bottom:12px}
+html.bca-phone .sequence-actions{gap:10px;flex-wrap:wrap}
+html.bca-phone .seq-btn{padding:10px 13px;font-size:9px}
+html.bca-phone .scroll-hint{display:none}
+html.bca-phone .sequence-counter{right:14px;top:80px}
+html.bca-phone .sequence-counter span{font-size:27px}
+html.bca-phone .sequence-progress{right:14px;top:125px;gap:9px}
+html.bca-phone .progress-dot{width:9px;height:9px}
+html.bca-phone .progress-dot.active{width:12px;height:12px}
+html.bca-phone .stage-play-control{right:14px!important;left:auto!important;bottom:88px!important;z-index:30!important;font-size:9px!important;padding:9px 12px!important}
+html.bca-phone .scene{right:-17%;top:55%;width:78vw;height:43vh;min-height:250px;max-height:360px;opacity:.88;pointer-events:auto}
+html.bca-phone .scene-object{pointer-events:none}
+html.bca-phone .stage-video{pointer-events:auto}
+html.bca-phone .sequence-metrics{left:14px;right:14px;bottom:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+html.bca-phone .sequence-metrics div{padding:7px 8px;border-right:1px solid rgba(255,255,255,.15)}
+html.bca-phone .sequence-metrics b{font-size:13px}
+html.bca-phone .sequence-metrics span{font-size:6px}
+
+/* Intro video and fixed header must never create horizontal clipping. */
+html.bca-phone .site-intro-video{object-fit:cover}
+html.bca-phone .site-intro-brand{max-width:80vw}
+
+/* General section rhythm */
+html.bca-phone .journey-intro,
+html.bca-phone .opportunity,
+html.bca-phone .section,
+html.bca-phone .planning,
+html.bca-phone .process,
+html.bca-phone .operations,
+html.bca-phone .projects-section,
+html.bca-phone .why{padding-top:40px;padding-bottom:40px}
+html.bca-phone .journey-intro h2,
+html.bca-phone .opp-copy h2,
+html.bca-phone .section-title h2,
+html.bca-phone .process-title h2,
+html.bca-phone .india-card h2,
+html.bca-phone .why h2{font-size:clamp(31px,9vw,42px);letter-spacing:-1px}
+html.bca-phone .section-title{display:block}
+html.bca-phone .section-title>a{margin-top:14px}
+html.bca-phone .opp-grid,.bca-phone .ops-grid{grid-template-columns:1fr;gap:22px}
+html.bca-phone .opp-stage{height:285px;overflow:hidden}
+html.bca-phone .stage-island{left:0;top:35px;transform:scale(.58) rotateX(58deg) rotateZ(-8deg);transform-origin:top left}
+html.bca-phone .opp-pills{right:0;top:0;gap:6px}
+html.bca-phone .opp-pills span{padding:7px 9px;font-size:8px}
+html.bca-phone .service-grid,.bca-phone .why-grid{grid-template-columns:1fr;gap:10px}
+html.bca-phone .service-grid article{min-height:0;padding:22px}
+html.bca-phone .why-grid article{min-height:170px;padding:21px}
+html.bca-phone .why-grid h3{margin-top:25px;font-size:14px}
+
+/* Planning / readiness */
+html.bca-phone .planning-grid{grid-template-columns:1fr;gap:12px}
+html.bca-phone .planning-card{min-height:0;padding:25px 22px}
+html.bca-phone .planning-card h3{font-size:20px}
+html.bca-phone .planning-strip{grid-template-columns:1fr!important}
+html.bca-phone .readiness-hero{min-height:390px}
+html.bca-phone .readiness-hero-copy{width:100%;height:62%;padding:22px 16px 16px;background:linear-gradient(180deg,#eefbfd 0%,rgba(238,251,253,.98) 52%,rgba(238,251,253,.48) 84%,transparent 100%)}
+html.bca-phone .readiness-hero-copy h2{font-size:36px;letter-spacing:-1.5px}
+html.bca-phone .readiness-hero-copy p{font-size:11px;max-width:330px}
+html.bca-phone .readiness-hero-visual,.bca-phone .readiness-hero-visual img{min-height:390px;height:390px}
+html.bca-phone .readiness-head{margin:0 12px;padding:13px;grid-template-columns:1fr;gap:12px}
+html.bca-phone .readiness-intro h2{font-size:24px}
+html.bca-phone .readiness-intro p{font-size:10.5px}
+html.bca-phone .readiness-topics{grid-template-columns:1fr;gap:7px}
+html.bca-phone .readiness-topics>div{padding:9px 10px}
+html.bca-phone .readiness-flow{grid-template-columns:1fr;gap:12px;padding:14px 12px}
+html.bca-phone .readiness-arrow{display:none}
+html.bca-phone .readiness-image{height:190px}
+html.bca-phone .readiness-card-body{min-height:0;padding:13px}
+html.bca-phone .readiness-card-body h3{font-size:18px}
+html.bca-phone .readiness-card-body p{font-size:10.5px}
+
+/* Projects / India map */
+html.bca-phone .projects-section{padding:40px 0}
+html.bca-phone .projects-heading{display:block;margin-bottom:16px}
+html.bca-phone .projects-heading h2{font-size:39px}
+html.bca-phone .projects-heading p{font-size:11px;line-height:1.55}
+html.bca-phone .projects-summary{width:100%;margin-top:14px}
+html.bca-phone .projects-summary div{flex:1;min-width:0;padding:12px 8px}
+html.bca-phone .projects-summary b{font-size:24px}
+html.bca-phone .projects-summary span{font-size:7px}
+html.bca-phone .completed-projects-panel{grid-template-columns:1fr;gap:12px}
+html.bca-phone .project-map-card,.bca-phone .project-details{border-radius:18px}
+html.bca-phone .map-head{display:block;padding:17px 17px 10px}
+html.bca-phone .map-head h3{font-size:19px}
+html.bca-phone .map-head p{font-size:9px}
+html.bca-phone .map-legend{margin-top:7px}
+html.bca-phone .india-projects-map{height:360px;margin:0 5px;border-radius:13px}
+html.bca-phone .project-details{padding:17px;min-height:0}
+html.bca-phone .project-details h3{font-size:28px}
+html.bca-phone .state-project-list{max-height:none;overflow:visible}
+html.bca-phone .state-project{padding:12px}
+html.bca-phone .state-project h4{font-size:11px}
+html.bca-phone .state-project p{font-size:9px}
+html.bca-phone .map-instructions{padding:9px 16px 2px;font-size:8px;gap:10px}
+html.bca-phone .map-source{padding:7px 16px 13px;font-size:8px}
+
+/* Contact: prevent tiny squeezed text and keep controls finger-friendly. */
+html.bca-phone .contact-section{padding:24px 0 42px}
+html.bca-phone .contact-whatsapp-banner{margin-bottom:14px}
+html.bca-phone .contact-whatsapp-link{min-height:68px;padding:9px 10px;grid-template-columns:34px minmax(0,1fr) 34px;gap:8px;border-radius:24px}
+html.bca-phone .contact-whatsapp-icon,html.bca-phone .contact-whatsapp-arrow{width:34px;height:34px;font-size:16px}
+html.bca-phone .contact-whatsapp-copy strong{font-size:11px}
+html.bca-phone .contact-whatsapp-copy small{font-size:7px}
+html.bca-phone .contact-whatsapp-number{grid-column:2;font-size:8px}
+html.bca-phone .contact-main-grid{grid-template-columns:1fr;gap:12px}
+html.bca-phone .contact-form-card,html.bca-phone .contact-info-card{padding:17px 13px;border-radius:17px}
+html.bca-phone .contact-card-heading{gap:9px;margin-bottom:14px}
+html.bca-phone .contact-heading-icon{width:38px;height:38px;flex-basis:38px;font-size:17px}
+html.bca-phone .contact-card-heading h2{font-size:20px}
+html.bca-phone .contact-card-heading p{font-size:8px}
+html.bca-phone .contact-form-card .enquiry-grid{grid-template-columns:1fr;gap:9px}
+html.bca-phone .contact-form-card .enquiry-grid input{height:43px;padding:0 11px;font-size:10px;border-radius:10px}
+html.bca-phone .contact-form-card .enquiry-grid textarea{min-height:105px;padding:10px 11px;font-size:10px;border-radius:10px}
+html.bca-phone .contact-form-card .enquiry-actions{flex-direction:column;align-items:stretch;gap:7px;margin-top:9px}
+html.bca-phone .contact-form-card .whatsapp-submit{width:100%;min-height:43px;padding:0 13px;font-size:9px}
+html.bca-phone .contact-info-card .contact-methods{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:16px}
+html.bca-phone .contact-info-card .contact-method{min-height:88px;display:flex;padding:8px 4px;text-align:center;border-radius:10px}
+html.bca-phone .contact-info-card .method-icon{width:34px;height:34px;font-size:15px;margin-bottom:5px}
+html.bca-phone .contact-info-card .contact-method strong{font-size:9px}
+html.bca-phone .contact-info-card .contact-method small{font-size:6px;margin-top:3px;white-space:normal;word-break:break-word}
+html.bca-phone .discussion-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+html.bca-phone .discussion-grid span{min-height:50px;padding:7px;font-size:7.5px;border-radius:9px}
+html.bca-phone .contact-discuss{padding-top:14px}
+html.bca-phone .contact-discuss h3,html.bca-phone .contact-follow h3{font-size:17px}
+html.bca-phone .contact-discuss>p{font-size:8px;margin:5px 0 10px}
+html.bca-phone .contact-follow{margin-top:15px;padding-top:14px;gap:10px}
+html.bca-phone .contact-social-icons{gap:6px}
+html.bca-phone .contact-social-icons a{width:37px;height:37px;border-radius:9px}
+html.bca-phone .contact-social-icons img{width:17px;height:17px}
+
+/* Legal/footer */
+html.bca-phone .legal-wrap{grid-template-columns:1fr!important;gap:12px!important}
+html.bca-phone .legal-intro{text-align:left;margin-bottom:14px!important}
+html.bca-phone .legal-intro h2{font-size:31px!important}
+html.bca-phone .legal-intro p{font-size:9px!important}
+html.bca-phone .legal-panel{padding:17px!important;border-radius:16px!important}
+html.bca-phone .legal-content-grid{grid-template-columns:1fr!important}
+html.bca-phone .legal-content-grid>div{padding:13px}
+html.bca-phone .legal-panel-head h2{font-size:22px!important}
+html.bca-phone .legal-summary{font-size:9px}
+html.bca-phone footer{padding:22px 0}
+html.bca-phone .footer{gap:14px}
+html.bca-phone .footer-links{margin-left:0;flex-wrap:wrap;gap:12px}
+
+/* Tablet: use two-column content where there is room, but never allow
+   fixed-width desktop cards to squeeze or overflow. */
+html.bca-tablet .wrap{width:calc(100% - 40px)}
+html.bca-tablet .header{padding:0 20px}
+html.bca-tablet .header nav{gap:9px}
+html.bca-tablet .header nav a{font-size:10px;padding:8px 7px}
+html.bca-tablet .header-cta{margin-left:8px;padding:10px 13px;font-size:10px}
+html.bca-tablet .sequence{height:auto!important}
+html.bca-tablet .sequence-sticky{position:relative;height:auto;min-height:760px}
+html.bca-tablet .sequence-copy{left:5%;width:45vw}
+html.bca-tablet .sequence-copy h1{font-size:clamp(45px,6vw,66px)}
+html.bca-tablet .scene{right:0;width:56vw;height:55vh}
+html.bca-tablet .sequence-progress{right:2.5%}
+html.bca-tablet .readiness-head{grid-template-columns:1fr;gap:16px}
+html.bca-tablet .readiness-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+html.bca-tablet .readiness-arrow{display:none}
+html.bca-tablet .completed-projects-panel{grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr)}
+html.bca-tablet .india-projects-map{height:480px}
+html.bca-tablet .contact-main-grid{grid-template-columns:1fr;gap:20px}
+html.bca-tablet .contact-info-card,.bca-tablet .contact-form-card{padding:25px}
+html.bca-tablet .organizations-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Coarse pointer: eliminate hover-only movement and preserve accessibility. */
+@media (hover:none),(pointer:coarse){
+  .service-grid article:hover,.planning-card:hover,.opportunity:hover,.project-map-card:hover,.completed-projects-panel:hover,.legal-panel:hover,.cta-box:hover,.contact-method:hover,.contact-social-icons a:hover{transform:none!important}
+}
+
+/* Very small screens */
+@media (max-width:360px){
+  html.bca-phone .sequence-sticky{min-height:650px}
+  html.bca-phone .sequence-copy{width:72vw;top:31%}
+  html.bca-phone .sequence-copy h1{font-size:37px}
+  html.bca-phone .scene{right:-25%;width:82vw}
+  html.bca-phone .sequence-metrics b{font-size:11px}
+  html.bca-phone .contact-info-card .contact-methods{grid-template-columns:1fr}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+
+
+/* =========================================================
+   UNIVERSAL JOURNEY + CONTACT EXPERIENCE
+   The same interaction model is used on desktop, tablet,
+   mobile and mobile "Desktop site" mode.
+   ========================================================= */
+.sequence{
+  height:100svh !important;
+  min-height:640px !important;
+  overflow:hidden !important;
+}
+.sequence-sticky{
+  position:relative !important;
+  top:auto !important;
+  height:100svh !important;
+  min-height:640px !important;
+  overflow:hidden !important;
+}
+/* Stage selection is always visible and clickable. */
+.sequence-progress{
+  top:92px !important;
+  left:50% !important;
+  right:auto !important;
+  bottom:auto !important;
+  transform:translateX(-50%) !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:clamp(5px,1vw,11px) !important;
+  width:min(92vw,620px) !important;
+  z-index:30 !important;
+}
+.sequence-progress:before{
+  top:50% !important;
+  bottom:auto !important;
+  left:18px !important;
+  right:18px !important;
+  width:auto !important;
+  height:1px !important;
+  background:linear-gradient(90deg,rgba(57,143,146,.15),#398f92,rgba(57,143,146,.15)) !important;
+}
+.progress-dot{
+  -webkit-tap-highlight-color:transparent !important;
+  touch-action:manipulation !important;
+  user-select:none !important;
+  -webkit-user-select:none !important;
+  flex:0 0 auto !important;
+  width:clamp(28px,3vw,38px) !important;
+  height:clamp(28px,3vw,38px) !important;
+  color:#dffcff !important;
+  background:rgba(2,45,59,.88) !important;
+  border-color:rgba(142,224,230,.48) !important;
+  font:800 clamp(8px,1vw,10px)/1 Manrope !important;
+  z-index:2 !important;
+}
+.progress-dot.active{
+  width:clamp(32px,3.3vw,42px) !important;
+  height:clamp(32px,3.3vw,42px) !important;
+  background:#0bc7d2 !important;
+  color:#fff !important;
+}
+.sequence-counter{top:92px !important;right:6% !important;z-index:31 !important}
+.stage-play-control{
+  top:145px !important;
+  left:50% !important;
+  right:auto !important;
+  transform:translateX(-50%) !important;
+  z-index:31 !important;
+  min-height:38px !important;
+  padding:9px 16px !important;
+}
+.sequence-actions .scroll-hint{display:inline-flex !important}
+.scene-object.has-video .stage-video{cursor:pointer !important;pointer-events:auto !important}
+
+/* Compact contact layout is shared by every viewport. Responsive rules only
+   change stacking when space is genuinely unavailable. */
+.contact-section{padding:22px 0 42px !important}
+.contact-whatsapp-banner{max-width:900px !important;margin:0 auto 14px !important}
+.contact-whatsapp-link{min-height:64px !important;padding:7px 13px 7px 12px !important;gap:10px !important;border-radius:34px !important}
+.contact-whatsapp-icon,.contact-whatsapp-arrow{width:38px !important;height:38px !important;font-size:17px !important}
+.contact-whatsapp-copy strong{font-size:14px !important}
+.contact-whatsapp-copy small{font-size:8px !important}
+.contact-whatsapp-number{font-size:10px !important}
+.contact-main-grid{gap:14px !important}
+.contact-form-card,.contact-info-card{padding:20px 22px 18px !important;border-radius:20px !important}
+.contact-card-heading{gap:10px !important;margin-bottom:14px !important}
+.contact-heading-icon{width:42px !important;height:42px !important;flex-basis:42px !important;font-size:18px !important}
+.contact-card-heading h2{font-size:22px !important}
+.contact-card-heading p{font-size:9px !important;margin-top:3px !important}
+.contact-form-card .enquiry-grid{gap:10px !important}
+.contact-form-card .enquiry-grid input{height:46px !important;padding:0 13px !important;font-size:11px !important;border-radius:10px !important}
+.contact-form-card .enquiry-grid textarea{min-height:112px !important;padding:11px 13px !important;font-size:11px !important;border-radius:10px !important}
+.contact-form-card .enquiry-actions{margin-top:10px !important;gap:8px !important}
+.contact-form-card .whatsapp-submit{min-height:46px !important;padding:0 18px !important;font-size:10px !important}
+.contact-form-card .enquiry-note{font-size:8px !important}
+.contact-info-card .contact-card-heading{margin-bottom:14px !important}
+.contact-methods{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:8px !important;margin-bottom:15px !important}
+.contact-method{min-height:92px !important;padding:9px 6px !important;border-radius:11px !important}
+.method-icon{width:36px !important;height:36px !important;font-size:15px !important;margin-bottom:5px !important}
+.contact-method strong{font-size:9px !important}
+.contact-method small{font-size:7px !important;margin-top:3px !important;white-space:nowrap}
+.contact-discuss{padding-top:14px !important}
+.contact-discuss h3,.contact-follow h3{font-size:18px !important}
+.contact-discuss>p{margin:5px 0 10px !important;font-size:8px !important}
+.discussion-grid{gap:6px !important}
+.discussion-grid span{min-height:44px !important;padding:7px !important;border-radius:9px !important;font-size:8px !important}
+.contact-follow{margin-top:14px !important;padding-top:12px !important;gap:10px !important}
+.contact-follow h3{font-size:15px !important}
+.contact-social-icons{gap:6px !important}
+.contact-social-icons a{width:36px !important;height:36px !important;border-radius:9px !important}
+.contact-social-icons img{width:17px !important;height:17px !important}
+
+@media(max-width:1050px){
+  .sequence-counter{right:4% !important}
+  .contact-main-grid{grid-template-columns:1fr !important}
+}
+@media(max-width:700px){
+  .sequence{min-height:620px !important}
+  .sequence-sticky{min-height:620px !important}
+  .sequence-progress{top:72px !important;width:94vw !important;gap:4px !important}
+  .progress-dot{width:29px !important;height:29px !important;font-size:8px !important}
+  .progress-dot.active{width:33px !important;height:33px !important}
+  .sequence-counter{top:112px !important;right:6% !important}
+  .sequence-counter span{font-size:25px !important}
+  .stage-play-control{top:111px !important;left:7% !important;transform:none !important;font-size:9px !important;min-height:34px !important;padding:8px 12px !important}
+  .sequence-copy{top:27% !important;left:7% !important;width:86% !important}
+  .scene{top:54% !important;height:42svh !important;min-height:240px !important;max-height:360px !important}
+  .sequence-actions .scroll-hint{display:none !important}
+  .contact-main-grid{grid-template-columns:1fr !important;gap:12px !important}
+  .contact-form-card .enquiry-grid{grid-template-columns:1fr !important}
+  .contact-form-card .enquiry-actions{flex-direction:row !important;align-items:center !important}
+  .contact-form-card .whatsapp-submit{width:auto !important}
+  .contact-info-card .contact-methods{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .discussion-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .contact-follow{flex-direction:row !important;align-items:center !important}
+}
+@media(max-width:390px){
+  .sequence-progress{gap:2px !important}
+  .progress-dot{width:27px !important;height:27px !important;font-size:7px !important}
+  .progress-dot.active{width:30px !important;height:30px !important}
+  .sequence-copy h1{font-size:37px !important}
+  .contact-info-card .contact-methods{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .contact-method small{font-size:5.5px !important}
+}
+
+/* Real India-map fallback used only when Leaflet/GeoJSON cannot be reached. */
+.india-fallback-real-map{position:relative;width:100%;height:100%;min-height:320px;border-radius:16px;overflow:hidden;background:#f4fbfa;display:flex;align-items:center;justify-content:center}
+.india-fallback-real-map>img{width:100%;height:100%;object-fit:contain;display:block}
+.fallback-state-layer{position:absolute;inset:0;pointer-events:none}
+.fallback-state-pin{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;border:1px solid rgba(255,255,255,.75);background:#06495d;color:#fff;border-radius:999px;padding:7px 9px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 20px rgba(3,65,82,.20);font:800 8px/1 Manrope;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.fallback-state-pin b{display:grid;place-items:center;min-width:18px;height:18px;border-radius:50%;background:#20c4ca;color:#fff;font-size:7px}
+.fallback-state-pin:focus-visible{outline:2px solid #0bc7d2;outline-offset:3px}
+.fallback-map-note{position:absolute;left:14px;bottom:12px;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.92);color:#507481;font:700 8px Manrope;box-shadow:0 5px 15px rgba(3,65,82,.08)}
+.scene-object.has-video .stage-video{background:#022f3d}
+.scene-object.has-video .stage-video.stage-video-error{visibility:hidden}
+@media(max-width:600px){
+  .india-fallback-real-map{min-height:300px;border-radius:13px}
+  .fallback-state-pin{padding:5px 7px;font-size:6.5px;gap:4px}
+  .fallback-state-pin b{min-width:15px;height:15px;font-size:6px}
+  .fallback-map-note{font-size:6.5px;left:9px;bottom:8px}
+}
+
+/* =========================================================
+   FINAL FUNCTIONALITY SAFETY — INTRO + BUNDLED INDIA MAP
+   ========================================================= */
+.site-intro{z-index:10000;pointer-events:auto}
+.site-intro-video{z-index:0;pointer-events:none}
+.site-intro-shade{z-index:1;pointer-events:none}
+.site-intro-brand{z-index:2;pointer-events:none}
+.site-intro-progress{z-index:10;pointer-events:none}
+.intro-sound-gate{z-index:40;pointer-events:auto}
+.intro-skip{z-index:60;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.intro-skip:hover{background:rgba(3,63,82,.78);border-color:rgba(141,242,242,.8)}
+.intro-skip:focus-visible{outline:2px solid #6eeef0;outline-offset:3px}
+@media(max-width:600px){
+  .intro-skip{top:16px;right:14px;bottom:auto;padding:9px 13px;font-size:9px}
+  .intro-sound-gate{bottom:78px;z-index:40}
+}
+
+/* The bundled map is the production source of truth. Never let a failed
+   external GeoJSON request replace it with an abstract silhouette. */
+.india-fallback-real-map{isolation:isolate}
+.india-fallback-real-map>img{position:relative;z-index:0}
+.fallback-state-layer{z-index:5}
+.fallback-state-pin{z-index:6;touch-action:manipulation}
+.fallback-state-pin.is-selected{background:#0bc7d2;color:#033747;box-shadow:0 10px 25px rgba(3,93,104,.28);border-color:#fff}
+@media(max-width:600px){
+  .india-fallback-real-map>img{object-fit:cover;object-position:center}
+  .fallback-state-pin{padding:6px 8px;font-size:7px}
+}

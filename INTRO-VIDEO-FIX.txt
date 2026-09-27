@@ -1,0 +1,7 @@
+INTRO VIDEO PLAYBACK FIX
+
+The intro video now starts muted so Android Chrome, iOS Safari and desktop browsers can autoplay it reliably.
+Sound is enabled only after the user taps "Enter Blue Chain Aqua".
+If autoplay is blocked, the first user interaction retries playback.
+The video keeps a poster fallback and inline playback attributes for mobile browsers.
+The existing intro video asset is preserved.

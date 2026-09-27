@@ -10,13 +10,12 @@
   gtag('config', 'G-G5TRWMNQ7Z');
 </script>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Blue Chain Aqua — Aquaculture & Fisheries Consultancy across India. DPRs, feasibility, financial analysis, scheme facilitation and end-to-end project support.">
 <title>Blue Chain Aqua | From Value Chains to the Blue Economy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="assets/blue-chain-aqua-logo-transparent.png">
 </head>
@@ -24,7 +23,7 @@
 
 <!-- The uploaded intro video is preserved as the first screen. -->
 <div class="site-intro" id="siteIntro" aria-label="Blue Chain Aqua introduction">
-  <video id="introVideo" class="site-intro-video" autoplay playsinline preload="auto">
+  <video id="introVideo" class="site-intro-video" autoplay muted playsinline webkit-playsinline preload="auto" poster="assets/hero-poster.jpg">
     <source src="assets/intro-video.mp4" type="video/mp4">
   </video>
   <div class="site-intro-shade"></div>
@@ -59,25 +58,26 @@
     <div class="sequence-bg"></div>
     <div class="sequence-noise"></div>
     <div class="sequence-progress" aria-label="Aquaculture journey progress">
-      <button class="progress-dot active" data-step="0" aria-label="Water Selection">01</button>
-      <button class="progress-dot" data-step="1" aria-label="Pond Preparation">02</button>
-      <button class="progress-dot" data-step="2" aria-label="Hatchery">03</button>
-      <button class="progress-dot" data-step="3" aria-label="Grow-out Farming">04</button>
-      <button class="progress-dot" data-step="4" aria-label="Harvesting">05</button>
-      <button class="progress-dot" data-step="5" aria-label="Processing">06</button>
-      <button class="progress-dot" data-step="6" aria-label="Market & Supply Chain">07</button>
-      <button class="progress-dot" data-step="7" aria-label="Blue Economy">08</button>
+      <button type="button" class="progress-dot active" data-step="0" aria-label="Water Selection">01</button>
+      <button type="button" class="progress-dot" data-step="1" aria-label="Pond Preparation">02</button>
+      <button type="button" class="progress-dot" data-step="2" aria-label="Hatchery">03</button>
+      <button type="button" class="progress-dot" data-step="3" aria-label="Grow-out Farming">04</button>
+      <button type="button" class="progress-dot" data-step="4" aria-label="Harvesting">05</button>
+      <button type="button" class="progress-dot" data-step="5" aria-label="Processing">06</button>
+      <button type="button" class="progress-dot" data-step="6" aria-label="Market & Supply Chain">07</button>
+      <button type="button" class="progress-dot" data-step="7" aria-label="Blue Economy">08</button>
     </div>
     <div class="sequence-counter"><span id="stepNumber">01</span><small>/ 08</small></div>
+    <button class="stage-play-control" id="stagePlayControl" type="button" aria-label="Play current stage video"> Play stage</button>
 
     <div class="sequence-copy">
       <div class="sequence-kicker" id="stepKicker">SITE • WATER • VIABILITY</div>
       <h1 id="stepTitle">Water<br><em>Selection</em></h1>
       <p id="stepText">Start with the right water, land and environmental conditions. We assess the site before capital is committed.</p>
-      <div class="sequence-actions"><a class="seq-btn" href="#services">Explore the stage <span>→</span></a><span class="scroll-hint"><i></i> Scroll to continue</span></div>
+      <div class="sequence-actions"><a class="seq-btn" href="#services">Explore the stage <span>→</span></a><span class="scroll-hint"><i></i> Tap a stage to play</span></div>
     </div>
 
-    <div class="scene" aria-hidden="true">
+    <div class="scene" aria-label="Aquaculture project stage videos">
       <div class="scene-glow"></div>
       <div class="scene-floor"></div>
       <div class="scene-object scene-water has-video">
@@ -455,7 +455,6 @@
     <div class="footer-bottom"><span>© <span id="year"></span> Blue Chain Aqua. All rights reserved.</span><span>Built for practical aquaculture &amp; fisheries project support.</span></div>
   </div>
 </footer>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="config.js"></script>
 <script src="script.js"></script>
 <script src="ai-assistant.js"></script>

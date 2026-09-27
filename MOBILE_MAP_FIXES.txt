@@ -7,3 +7,5 @@ Blue Chain Aqua mobile compatibility fixes
 - Makes the map panel and project details width-safe on narrow screens.
 - Uses touch-friendly Leaflet zoom controls and avoids hover-only behavior on touch devices.
 - Keeps the existing five project states and click-to-view project details behavior.
+- Adds a hard touch-device stacking override so the selected-state panel cannot remain squeezed into the top-right on Android browsers with a wide CSS viewport.
+- Pins the primary GeoJSON CDN to the main branch and adds an additional India-states source with a longer mobile-safe timeout.

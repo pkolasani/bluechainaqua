@@ -1,33 +1,133 @@
 const intro=document.getElementById('siteIntro');
-// Some Android browsers (especially when Desktop Site was previously enabled)
-// report a desktop-sized viewport. Mark touch devices explicitly so the mobile
-// layout still activates reliably.
-if (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
-  document.documentElement.classList.add('bca-touch');
-}
 
+/* =========================================================
+   BLUE CHAIN AQUA — INTRO EXPERIENCE
+   Keep the intro independent from the rest of the page so a
+   map/API/AI error can never break Skip Intro or sound playback.
+   ========================================================= */
 const introVideo=document.getElementById('introVideo');
 const introSkip=document.getElementById('introSkip');
 const introProgress=intro?.querySelector('.site-intro-progress span');
 const soundGate=document.getElementById('introSoundGate');
 const soundBtn=document.getElementById('introSoundBtn');
 const silentBtn=document.getElementById('introSilentBtn');
+let introFinished=false;
+let introStartTimer=null;
 
-function finishIntro(){if(!intro||intro.classList.contains('is-done'))return;intro.classList.add('is-done');document.body.classList.remove('intro-active');setTimeout(()=>intro.remove(),950)}
-function hideSoundGate(){soundGate?.classList.add('hidden')}
-function showSoundGate(){soundGate?.classList.remove('hidden')}
+function finishIntro(){
+  if(!intro || introFinished) return;
+  introFinished=true;
+  if(introStartTimer) clearTimeout(introStartTimer);
+  intro.classList.add('is-done');
+  intro.setAttribute('aria-hidden','true');
+  document.body.classList.remove('intro-active');
+  if(introVideo){
+    try{introVideo.pause();}catch(e){}
+  }
+  // Keep the fade, but remove the overlay afterwards so it can never
+  // intercept clicks or scrolling on the real page.
+  setTimeout(()=>intro.remove(),950);
+}
+function hideSoundGate(){soundGate?.classList.add('hidden');}
+function showSoundGate(){soundGate?.classList.remove('hidden');}
+
+if(intro){
+  // The intro is a self-contained layer. Do not let any page script prevent
+  // its buttons from working.
+  intro.addEventListener('click',e=>{
+    if(e.target.closest('#introSkip')) finishIntro();
+  },true);
+}
 
 if(introVideo){
-  introVideo.addEventListener('timeupdate',()=>{if(introVideo.duration&&introProgress)introProgress.style.width=Math.min(100,introVideo.currentTime/introVideo.duration*100)+'%'});
-  introVideo.addEventListener('ended',finishIntro);
-  introVideo.addEventListener('error',finishIntro);
-  introVideo.muted=false;
-  const p=introVideo.play();
-  if(p?.catch)p.catch(()=>{introVideo.muted=true;introVideo.play().catch(()=>{});showSoundGate()});
+  introVideo.muted=true;
+  introVideo.defaultMuted=true;
+  introVideo.playsInline=true;
+  introVideo.setAttribute('muted','');
+  introVideo.setAttribute('playsinline','');
+  introVideo.setAttribute('webkit-playsinline','');
+  introVideo.preload='auto';
+
+  introVideo.addEventListener('timeupdate',()=>{
+    if(introVideo.duration && Number.isFinite(introVideo.duration) && introProgress){
+      introProgress.style.width=Math.min(100,(introVideo.currentTime/introVideo.duration)*100)+'%';
+    }
+  });
+  introVideo.addEventListener('ended',finishIntro,{once:true});
+  introVideo.addEventListener('error',()=>{
+    // If the media file is unavailable, never leave the visitor trapped on
+    // the intro. The page remains usable and Skip Intro still works.
+    showSoundGate();
+    introStartTimer=setTimeout(finishIntro,1200);
+  },{once:true});
+
+  function startMutedIntro(){
+    if(introFinished) return Promise.resolve();
+    introVideo.muted=true;
+    try{
+      const promise=introVideo.play();
+      if(promise?.catch) promise.catch(()=>showSoundGate());
+      return promise || Promise.resolve();
+    }catch(e){
+      showSoundGate();
+      return Promise.reject(e);
+    }
+  }
+
+  // Browser-safe autoplay path.
+  startMutedIntro();
+
+  // If autoplay is blocked, the first genuine interaction can start it.
+  const resumeIntro=()=>{
+    if(introFinished || !introVideo.paused) return;
+    startMutedIntro();
+  };
+  window.addEventListener('pointerdown',resumeIntro,{once:true,passive:true});
+  window.addEventListener('touchstart',resumeIntro,{once:true,passive:true});
+
+  soundBtn?.addEventListener('click',async e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(introFinished) return;
+    try{
+      // Changing muted=false and calling play() directly inside the user's
+      // click is the most reliable way to satisfy mobile autoplay policy.
+      introVideo.muted=false;
+      introVideo.defaultMuted=false;
+      introVideo.volume=1;
+      await introVideo.play();
+      hideSoundGate();
+    }catch(err){
+      // Some mobile browsers still reject unmuted playback. Do not break the
+      // intro: keep it playing silently and leave the explicit sound action.
+      introVideo.muted=true;
+      introVideo.defaultMuted=true;
+      showSoundGate();
+      try{await introVideo.play();}catch(e2){}
+    }
+  });
+
+  silentBtn?.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(introFinished) return;
+    introVideo.muted=true;
+    introVideo.defaultMuted=true;
+    startMutedIntro();
+    hideSoundGate();
+  });
 }
-soundBtn?.addEventListener('click',()=>{if(!introVideo)return;introVideo.muted=false;introVideo.volume=1;introVideo.play().catch(()=>{});hideSoundGate()});
-silentBtn?.addEventListener('click',()=>{if(introVideo)introVideo.muted=true;hideSoundGate()});
-introSkip?.addEventListener('click',finishIntro);
+
+// Direct listener as well as the delegated capture listener above. This makes
+// keyboard activation and normal button activation equally reliable.
+introSkip?.addEventListener('click',e=>{
+  e.preventDefault();
+  e.stopPropagation();
+  finishIntro();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && intro && !introFinished) finishIntro();
+});
 
 const steps=[
  {n:'01',k:'SITE • WATER • VIABILITY',t:'Water<br><em>Selection</em>',p:'Start with the right water, land and environmental conditions. We assess the site before capital is committed.',scene:'scene-water'},
@@ -43,30 +143,102 @@ const sticky=document.querySelector('.sequence-sticky');
 const sequence=document.querySelector('.sequence');
 const title=document.getElementById('stepTitle'),text=document.getElementById('stepText'),kicker=document.getElementById('stepKicker'),num=document.getElementById('stepNumber');
 const dots=[...document.querySelectorAll('.progress-dot')];
-let current=-1, ticking=false;
-function renderStep(i){
-  if(i===current)return;
-  current=i;const s=steps[i];
-  title.innerHTML=s.t;text.textContent=s.p;kicker.textContent=s.k;num.textContent=s.n;
+let current=0;
+const stageVideos=[...document.querySelectorAll('.stage-video')];
+const stagePlay=document.getElementById('stagePlayControl');
+
+function playStageVideo(v){
+  if(!v) return;
+  v.muted=true;
+  try{
+    const p=v.play();
+    if(p?.catch) p.catch(()=>{});
+  }catch(e){}
+}
+function syncStageButton(v){
+  if(!stagePlay || !v) return;
+  const playing=!v.paused && !v.ended;
+  stagePlay.textContent=playing?'❚❚ Playing stage':' Play stage';
+  stagePlay.classList.toggle('is-playing',playing);
+  stagePlay.setAttribute('aria-label',playing?'Pause current stage video':'Play current stage video');
+}
+function renderStep(i,{play=false}={}){
+  i=Math.max(0,Math.min(steps.length-1,Number(i)||0));
+  current=i;
+  const s=steps[i];
+  if(title) title.innerHTML=s.t;
+  if(text) text.textContent=s.p;
+  if(kicker) kicker.textContent=s.k;
+  if(num) num.textContent=s.n;
   document.querySelectorAll('.scene-object').forEach(x=>x.classList.remove('active'));
   document.querySelector('.'+s.scene)?.classList.add('active');
-  document.querySelectorAll('.stage-video').forEach((v,j)=>{
-    if(j===i){v.currentTime=0; v.play().catch(()=>{});}
-    else {v.pause();}
+
+  stageVideos.forEach((v,j)=>{
+    if(j===i){
+      try{v.pause();v.currentTime=0;}catch(e){}
+      if(play) playStageVideo(v);
+    }else{
+      try{v.pause();}catch(e){}
+    }
   });
-  dots.forEach((d,j)=>d.classList.toggle('active',j===i));
-  document.querySelector('.sequence-copy')?.animate([{opacity:.25,transform:'translateY(-45%) translateX(16px)'},{opacity:1,transform:'translateY(-48%) translateX(0)'}],{duration:600,easing:'cubic-bezier(.2,.75,.2,1)'});
+  dots.forEach((d,j)=>{
+    d.classList.toggle('active',j===i);
+    d.setAttribute('aria-current',j===i?'step':'false');
+  });
+  syncStageButton(stageVideos[i]);
 }
-function updateSequence(){
-  const rect=sequence.getBoundingClientRect();
-  const total=sequence.offsetHeight-sticky.offsetHeight;
-  const progress=Math.min(1,Math.max(0,-rect.top/Math.max(1,total)));
-  const i=Math.min(steps.length-1,Math.floor(progress*steps.length));
-  renderStep(i);ticking=false;
+
+// Stage controls: use the button's own data-step value instead of relying
+// only on the closure index. This keeps touch/click selection deterministic
+// on Android/iOS and prevents a tap from ever resolving to stage 08.
+function selectStageFromControl(e){
+  e.preventDefault();
+  e.stopPropagation();
+  const btn=e.currentTarget;
+  const raw=btn?.getAttribute('data-step');
+  const index=Number.parseInt(raw,10);
+  if(!Number.isInteger(index) || index<0 || index>=steps.length) return;
+  renderStep(index,{play:true});
 }
-window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(updateSequence);ticking=true}},{passive:true});
-dots.forEach((d,i)=>d.addEventListener('click',()=>{const y=sequence.offsetTop+(sequence.offsetHeight-sticky.offsetHeight)*(i/(steps.length-1));window.scrollTo({top:y,behavior:'smooth'})}));
-renderStep(0);
+dots.forEach(d=>{
+  d.type='button';
+  d.style.touchAction='manipulation';
+  d.addEventListener('click',selectStageFromControl);
+  d.addEventListener('pointerup',e=>{
+    // On touch devices pointerup is the fastest reliable activation path.
+    if(e.pointerType==='touch' || e.pointerType==='pen') selectStageFromControl(e);
+  });
+});
+
+stageVideos.forEach((v,i)=>{
+  v.preload='metadata';
+  v.muted=true;
+  v.playsInline=true;
+  v.setAttribute('playsinline','');
+  v.addEventListener('error',()=>v.classList.add('stage-video-error'),{passive:true});
+  v.addEventListener('loadeddata',()=>v.classList.remove('stage-video-error'),{passive:true});
+  v.addEventListener('play',()=>{if(current===i)syncStageButton(v)},{passive:true});
+  v.addEventListener('pause',()=>{if(current===i)syncStageButton(v)},{passive:true});
+  v.addEventListener('ended',()=>{if(current===i)syncStageButton(v)},{passive:true});
+  v.addEventListener('click',e=>{
+    e.preventDefault();
+    if(current!==i){renderStep(i,{play:true});return;}
+    if(v.paused) playStageVideo(v); else v.pause();
+    syncStageButton(v);
+  });
+});
+
+stagePlay?.addEventListener('click',e=>{
+  e.preventDefault();
+  const v=stageVideos[current<0?0:current];
+  if(!v)return;
+  if(v.paused) playStageVideo(v); else v.pause();
+  syncStageButton(v);
+});
+
+// Start with Stage 01 visible but frozen. Nothing changes when the page
+// scrolls; users explicitly choose a stage.
+renderStep(0,{play:false});
 
 const menu=document.querySelector('.menu'),nav=document.querySelector('.header nav');
 menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu')});
@@ -128,6 +300,13 @@ function projectStateName(props={}){
   return stateAliases[raw] || raw;
 }
 
+
+function setupProjectTabs(){}
+
+let projectMap=null;
+let projectMapLayer=null;
+let projectMapResizeObserver=null;
+
 function renderStateProjects(state){
   const title = document.getElementById('selectedStateName');
   const count = document.getElementById('selectedStateCount');
@@ -150,192 +329,52 @@ function renderStateProjects(state){
   `).join('');
 }
 
-function setupProjectTabs(){}
-
-let projectMap=null;
-let projectMapLayer=null;
-let projectMapResizeObserver=null;
-
-function showProjectMapMessage(message, retry=false){
+/*
+   Production-safe India map.
+   The exact India artwork is bundled with the website, so the Projects
+   section never depends on a third-party GeoJSON request. The highlighted
+   states are real map regions in the bundled image; the five transparent
+   controls below provide reliable state selection on desktop and touch.
+*/
+function renderProjectMapFallback(){
   const mapEl=document.getElementById('indiaProjectsMap');
   if(!mapEl) return;
+  const states=[
+    ['Kerala','38%','78%'],
+    ['Andhra Pradesh','51%','70%'],
+    ['Telangana','51%','60%'],
+    ['Odisha','60%','49%'],
+    ['West Bengal','63%','39%']
+  ];
   mapEl.innerHTML=`
-    <div class="project-map-status" role="status">
-      <div class="project-map-status-icon">⌁</div>
-      <strong>${message}</strong>
-      ${retry ? '<button type="button" id="projectMapRetry">Retry map</button>' : '<span>Loading India state boundaries…</span>'}
+    <div class="india-fallback-real-map" role="group" aria-label="India map showing Blue Chain Aqua project states">
+      <img src="assets/maps/india-projects-fallback.png" alt="India map with Kerala, Andhra Pradesh, Telangana, Odisha and West Bengal highlighted" loading="eager" decoding="async">
+      <div class="fallback-state-layer" aria-label="Project states">
+        ${states.map(([name,left,top])=>{
+          const total=(projectData[name]||[]).reduce((sum,p)=>sum+(p.count||1),0);
+          return `<button type="button" class="fallback-state-pin" data-state="${name}" style="left:${left};top:${top}" aria-label="View ${name} projects"><span>${name}</span><b>${total}</b></button>`;
+        }).join('')}
+      </div>
+      <div class="fallback-map-note">Select a highlighted state to view its projects</div>
     </div>`;
-  if(retry) document.getElementById('projectMapRetry')?.addEventListener('click',setupProjectMap,{once:true});
-}
 
-function renderProjectMapFallback(){
-  // Do not render the old fake/silhouette map. If a remote map source is
-  // unavailable, keep the UI honest and provide a retry action instead.
-  showProjectMapMessage('India map could not be loaded.',true);
+  mapEl.querySelectorAll('.fallback-state-pin').forEach(btn=>btn.addEventListener('click',()=>{
+    const state=btn.dataset.state;
+    renderStateProjects(state);
+    document.querySelectorAll('.fallback-state-pin').forEach(b=>b.classList.toggle('is-selected',b===btn));
+    if(window.matchMedia('(max-width:780px)').matches){
+      document.getElementById('selectedStateName')?.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }));
   renderStateProjects('Andhra Pradesh');
 }
 
-function getProjectMapOptions(){
-  const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
-  return {
-    zoomControl:true,
-    scrollWheelZoom:false,
-    dragging:!touch,
-    doubleClickZoom:!touch,
-    touchZoom:touch,
-    boxZoom:false,
-    keyboard:!touch,
-    attributionControl:false,
-    zoomSnap:.25,
-    zoomDelta:.5,
-    zoomControlPosition:touch?'topright':'topleft',
-    tap:true
-  };
-}
-
-async function fetchProjectGeoJSON(){
-  // Keep two independent sources so a mobile carrier/CDN issue does not
-  // replace the real India map with a fake fallback.
-  const geoUrls=[
-    'https://cdn.jsdelivr.net/gh/udit-001/india-maps-data@HEAD/geojson/india.geojson',
-    'https://raw.githubusercontent.com/udit-001/india-maps-data/main/geojson/india.geojson'
-  ];
-  for(const geoUrl of geoUrls){
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),12000);
-    try{
-      const res=await fetch(geoUrl,{cache:'no-store',signal:controller.signal,credentials:'omit'});
-      if(res.ok){
-        const geo=await res.json();
-        if(geo && geo.features?.length) return geo;
-      }
-    }catch(e){
-      // Try the next source.
-    }finally{
-      clearTimeout(timeout);
-    }
-  }
-  throw new Error('Map data could not be loaded from either source');
-}
-
-function refitProjectMap(){
-  if(!projectMap || !projectMapLayer) return;
-  requestAnimationFrame(()=>{
-    projectMap.invalidateSize({pan:false,debounceMoveend:true});
-    const bounds=projectMapLayer.getBounds();
-    if(bounds.isValid()){
-      const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
-      projectMap.fitBounds(bounds,{
-        padding:touch?[10,10]:[18,18],
-        maxZoom:touch?5.25:6,
-        animate:false
-      });
-    }
-  });
-}
-
-async function setupProjectMap(){
-  const mapEl=document.getElementById('indiaProjectsMap');
-  if(!mapEl) return;
-
-  // Cleanly reinitialize on a manual retry.
-  if(projectMap){
-    projectMap.remove();
-    projectMap=null;
-    projectMapLayer=null;
-  }
-  if(projectMapResizeObserver){
-    projectMapResizeObserver.disconnect();
-    projectMapResizeObserver=null;
-  }
-
-  if(typeof L==='undefined'){
-    showProjectMapMessage('Map library is still loading…');
-    setTimeout(setupProjectMap,600);
-    return;
-  }
-
-  showProjectMapMessage('Loading India project map…');
-
-  try{
-    projectMap=L.map(mapEl,getProjectMapOptions());
-    L.control.attribution({prefix:false}).addAttribution('India map data: udit-001/india-maps-data');
-
-    const geo=await fetchProjectGeoJSON();
-
-    projectMapLayer=L.geoJSON(geo,{
-      style:feature=>{
-        const state=projectStateName(feature.properties||{});
-        const active=activeProjectStates.has(state);
-        return {
-          color:active?'#0b7789':'#b8ced2',
-          weight:active?1.7:.65,
-          fillColor:active?'#39c7c8':'#dfeceb',
-          fillOpacity:active?.82:.55
-        };
-      },
-      onEachFeature:(feature,layer)=>{
-        const state=projectStateName(feature.properties||{});
-        const active=activeProjectStates.has(state);
-        layer.on({
-          mouseover:e=>{
-            const touch=window.matchMedia('(hover: none) and (pointer: coarse)').matches || window.innerWidth<=780;
-            if(touch) return;
-            e.target.setStyle({weight:active?2.8:1.2,fillOpacity:active?1:.75});
-            e.target.bringToFront();
-          },
-          mouseout:e=>{
-            layer.setStyle({
-              color:active?'#0b7789':'#b8ced2',
-              weight:active?1.7:.65,
-              fillColor:active?'#39c7c8':'#dfeceb',
-              fillOpacity:active?.82:.55
-            });
-          },
-          click:()=>{
-            renderStateProjects(active?state:state);
-            if(active && window.innerWidth<=780){
-              document.getElementById('selectedStateName')?.scrollIntoView({
-                behavior:'smooth',
-                block:'start'
-              });
-            }
-          }
-        });
-        if(active){
-          layer.bindTooltip(state,{
-            permanent:false,
-            direction:'top',
-            className:'map-hover-label',
-            opacity:.98,
-            sticky:true
-          });
-        }
-      }
-    }).addTo(projectMap);
-
-    renderStateProjects('Andhra Pradesh');
-    refitProjectMap();
-
-    // Leaflet must be told about its final mobile dimensions after CSS/layout,
-    // especially after orientation changes and browser UI resizing.
-    const resize=()=>refitProjectMap();
-    window.addEventListener('resize',resize,{passive:true});
-    window.addEventListener('orientationchange',()=>setTimeout(refitProjectMap,250),{passive:true});
-
-    if('ResizeObserver' in window){
-      projectMapResizeObserver=new ResizeObserver(()=>refitProjectMap());
-      projectMapResizeObserver.observe(mapEl);
-    }
-
-    projectMap.whenReady(()=>setTimeout(refitProjectMap,80));
-  }catch(err){
-    projectMap?.remove();
-    projectMap=null;
-    projectMapLayer=null;
-    showProjectMapMessage('India map could not be loaded.',true);
-    renderStateProjects('Andhra Pradesh');
-  }
+// Kept as a public helper for compatibility with earlier versions. It now
+// simply re-renders the bundled production-safe map.
+function setupProjectMap(){
+  if(projectMap){try{projectMap.remove();}catch(e){} projectMap=null;}
+  if(projectMapResizeObserver){try{projectMapResizeObserver.disconnect();}catch(e){} projectMapResizeObserver=null;}
+  renderProjectMapFallback();
 }
 
 setupProjectTabs();
