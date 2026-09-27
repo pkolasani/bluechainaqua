@@ -14,11 +14,12 @@ function readMultipart(req) {
       return;
     }
 
-    const busboy = Busboy({ headers: req.headers });
+    const busboy = Busboy({ headers: req.headers, limits: { files: 1, fileSize: 8 * 1024 * 1024, fields: 5 } });
     let fileBuffer = null;
     let fileName = 'bca-question.webm';
     let mimeType = 'audio/webm';
     let model = null;
+    let fileTooLarge = false;
 
     busboy.on('field', (name, value) => {
       if (name === 'model') model = value;
@@ -35,6 +36,7 @@ function readMultipart(req) {
 
       const chunks = [];
       file.on('data', chunk => chunks.push(chunk));
+      file.on('limit', () => { fileTooLarge = true; file.resume(); });
       file.on('end', () => {
         fileBuffer = Buffer.concat(chunks);
       });
@@ -43,6 +45,10 @@ function readMultipart(req) {
     busboy.on('finish', () => {
       if (!fileBuffer) {
         reject(new Error('Audio file is required.'));
+        return;
+      }
+      if (fileTooLarge) {
+        reject(new Error('Audio file is too large. Maximum size is 8 MB.'));
         return;
       }
       resolve({ fileBuffer, fileName, mimeType, model });
@@ -68,11 +74,15 @@ export default async function handler(req, res) {
     const {
       fileBuffer,
       fileName,
-      mimeType,
-      model: requestedModel
+      mimeType
     } = await readMultipart(req);
 
-    const model = process.env.GROQ_STT_MODEL || requestedModel || 'whisper-large-v3-turbo';
+    const allowedAudio = ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'video/webm'];
+    if (!allowedAudio.includes(mimeType)) {
+      return res.status(415).json({ error: 'Unsupported audio format.' });
+    }
+
+    const model = process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo';
 
     const groqForm = new FormData();
     groqForm.append(

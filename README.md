@@ -52,3 +52,8 @@ Sources:
 - Added a dedicated Project Planning & Readiness section based on the consulting concepts requested from the KissanMitrr reference: assess & validate, business planning, financial clarity, funding readiness and execution support.
 - The content is rewritten for aquaculture/fisheries consultancy and does not copy the reference site's branding.
 - Added Planning to the navigation and footer, plus Privacy Policy and Terms of Service anchors.
+
+
+## Security hardening
+
+This deployment includes security headers via `vercel.json`, server-side Groq credentials, server-owned AI prompts/models, request validation, and an 8 MB transcription upload limit. Frontend HTML/CSS/JavaScript cannot be made completely secret: the browser must receive code required to render and run the site. Keep private credentials and business logic on the server and keep the Git repository private if the source must not be publicly accessible.

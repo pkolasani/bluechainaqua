@@ -18,10 +18,20 @@
     var voiceStatus = document.getElementById('bcaAiVoiceStatus');
     var messages = document.getElementById('bcaAiMessages');
     var suggestions = document.getElementById('bcaAiSuggestions');
+    var historyBtn = document.getElementById('bcaAiHistoryBtn');
+    var historyPanel = document.getElementById('bcaAiHistory');
+    var historyList = document.getElementById('bcaAiHistoryList');
+    var historyEmpty = document.getElementById('bcaAiHistoryEmpty');
+    var newChatBtn = document.getElementById('bcaAiNewChat');
 
     if (!root || !launch || !panel || !close || !form || !input || !send || !mic || !language || !messages) return;
 
     var history = [];
+    var conversationMessages = [];
+    var chatSessions = [];
+    var currentSessionId = null;
+    var CHAT_STORAGE_KEY = 'bca_aqua_ai_chat_history_v1';
+    var WELCOME_MESSAGE = 'Hello! I can help with aquaculture and fisheries topics such as pond preparation, water quality, shrimp/fish farming, biofloc, RAS, hatchery, feed, disease prevention, harvesting, processing, project planning and schemes.';
     var busy = false;
     var recording = false;
     var mediaRecorder = null;
@@ -69,7 +79,124 @@
       return language.value === 'Telugu' ? 'te-IN' : language.value === 'Hindi' ? 'hi-IN' : 'en-IN';
     }
 
+    function makeId() {
+      return 'chat_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function loadChatSessions() {
+      try {
+        var raw = localStorage.getItem(CHAT_STORAGE_KEY);
+        chatSessions = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(chatSessions)) chatSessions = [];
+      } catch (e) {
+        chatSessions = [];
+      }
+      chatSessions = chatSessions.filter(function (s) { return s && s.id && Array.isArray(s.messages) && s.messages.length; }).slice(0, 20);
+      renderHistoryList();
+    }
+
+    function persistChatSessions() {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatSessions.slice(0, 20)));
+      } catch (e) {
+        console.warn('Could not save Aqua AI chat history:', e);
+      }
+    }
+
+    function saveCurrentSession() {
+      if (!currentSessionId || !conversationMessages.length) return;
+      var firstUser = conversationMessages.find(function (m) { return m.role === 'user'; });
+      if (!firstUser) return;
+      var title = firstUser.text.trim().replace(/\s+/g, ' ');
+      if (title.length > 46) title = title.slice(0, 46).trim() + '…';
+      var existing = chatSessions.find(function (s) { return s.id === currentSessionId; });
+      var session = {
+        id: currentSessionId,
+        title: title || 'Aqua AI chat',
+        updatedAt: Date.now(),
+        messages: conversationMessages.slice(-40)
+      };
+      if (existing) Object.assign(existing, session);
+      else chatSessions.unshift(session);
+      chatSessions.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      chatSessions = chatSessions.slice(0, 20);
+      persistChatSessions();
+      renderHistoryList();
+    }
+
+    function renderHistoryList() {
+      if (!historyList || !historyEmpty) return;
+      historyList.innerHTML = '';
+      historyEmpty.style.display = chatSessions.length ? 'none' : 'block';
+      chatSessions.forEach(function (session) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'bca-ai-history-item' + (session.id === currentSessionId ? ' active' : '');
+        item.setAttribute('data-session-id', session.id);
+        var title = document.createElement('strong');
+        title.textContent = session.title || 'Aqua AI chat';
+        var meta = document.createElement('small');
+        var date = new Date(session.updatedAt || Date.now());
+        meta.textContent = date.toLocaleDateString([], { day: '2-digit', month: 'short' }) + ' · ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        item.appendChild(title);
+        item.appendChild(meta);
+        item.addEventListener('click', function () { loadChatSession(session.id); });
+        historyList.appendChild(item);
+      });
+    }
+
+    function renderConversation() {
+      messages.innerHTML = '';
+      addMessage('bot', WELCOME_MESSAGE);
+      conversationMessages.forEach(function (message) {
+        addMessage(message.role === 'assistant' ? 'bot' : 'user', message.text);
+      });
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function startNewChat() {
+      if (busy) return;
+      currentSessionId = makeId();
+      history = [];
+      conversationMessages = [];
+      renderConversation();
+      closeHistory();
+      input.value = '';
+      input.focus();
+    }
+
+    function loadChatSession(id) {
+      if (busy) return;
+      var session = chatSessions.find(function (s) { return s.id === id; });
+      if (!session) return;
+      currentSessionId = session.id;
+      conversationMessages = Array.isArray(session.messages) ? session.messages.slice(-40) : [];
+      history = conversationMessages.slice(-8).map(function (m) {
+        return { role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text };
+      });
+      renderConversation();
+      renderHistoryList();
+      closeHistory();
+      input.focus();
+    }
+
+    function openHistory() {
+      if (!historyPanel) return;
+      historyPanel.hidden = false;
+      historyPanel.removeAttribute('hidden');
+      if (historyBtn) historyBtn.setAttribute('aria-expanded', 'true');
+      renderHistoryList();
+    }
+
+    function closeHistory() {
+      if (!historyPanel) return;
+      historyPanel.hidden = true;
+      historyPanel.setAttribute('hidden', '');
+      if (historyBtn) historyBtn.setAttribute('aria-expanded', 'false');
+    }
+
     function openPanel() {
+      closeHistory();
       panel.hidden = false;
       panel.removeAttribute('hidden');
       panel.style.display = 'flex';
@@ -79,6 +206,7 @@
 
     function closePanel() {
       stopRecording();
+      closeHistory();
       panel.hidden = true;
       panel.setAttribute('hidden', '');
       panel.style.display = 'none';
@@ -232,6 +360,8 @@
       mic.disabled = true;
       input.disabled = true;
       addMessage('user', text);
+      conversationMessages.push({ role: 'user', text: text });
+      saveCurrentSession();
       var typing = addMessage('bot', 'Thinking…', 'typing');
 
       var selectedLanguage = language.value;
@@ -277,7 +407,9 @@
         typing.classList.remove('typing');
         history.push({ role: 'user', content: text });
         history.push({ role: 'assistant', content: answer });
+        conversationMessages.push({ role: 'assistant', text: answer });
         if (history.length > 8) history = history.slice(-8);
+        saveCurrentSession();
         if (voiceOutput) speakText(answer);
       } catch (err) {
         console.error('Blue Chain Aqua AI error:', err);
@@ -292,6 +424,26 @@
         messages.scrollTop = messages.scrollHeight;
       }
     }
+
+    if (historyBtn) {
+      historyBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (historyPanel && historyPanel.hidden) openHistory(); else closeHistory();
+      });
+    }
+
+    if (newChatBtn) {
+      newChatBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        startNewChat();
+      });
+    }
+
+    loadChatSessions();
+    currentSessionId = makeId();
+    renderConversation();
 
     launch.addEventListener('click', function (event) {
       event.preventDefault(); event.stopPropagation();
