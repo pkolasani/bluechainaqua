@@ -77,9 +77,13 @@ export default async function handler(req, res) {
       mimeType
     } = await readMultipart(req);
 
+    // Browsers commonly send codec parameters, e.g.
+    // audio/webm;codecs=opus. Validate the base MIME type instead of
+    // requiring an exact string so Android Chrome recordings are accepted.
+    const baseMimeType = String(mimeType || '').split(';')[0].trim().toLowerCase();
     const allowedAudio = ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'video/webm'];
-    if (!allowedAudio.includes(mimeType)) {
-      return res.status(415).json({ error: 'Unsupported audio format.' });
+    if (!allowedAudio.includes(baseMimeType)) {
+      return res.status(415).json({ error: `Unsupported audio format: ${mimeType}` });
     }
 
     const model = process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo';

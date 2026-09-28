@@ -2765,9 +2765,12 @@ html.bca-tablet .organizations-grid{grid-template-columns:repeat(2,minmax(0,1fr)
   .fallback-state-pin{padding:6px 8px;font-size:7px}
 }
 
-/* Mobile menu touch reliability */
-@media(max-width:780px){
-  .menu{display:flex !important;position:relative;z-index:10001;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-  .menu i{pointer-events:none}
+/* Mobile menu touch reliability — also covers Android Chrome Desktop Site mode. */
+@media(max-width:780px), (pointer:coarse){
+  .menu{display:flex !important;position:relative;z-index:10001;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;width:46px;height:46px;min-width:46px;align-items:center;justify-content:center;padding:9px;margin-left:auto;margin-right:0}
+  .menu i{pointer-events:none;width:24px;height:2px;display:block}
   .header nav{z-index:10000}
 }
+html.bca-phone .menu{display:flex !important;position:relative;z-index:10001;width:46px;height:46px;min-width:46px;align-items:center;justify-content:center;touch-action:manipulation}
+html.bca-phone .header{z-index:1000}
+html.bca-phone .header nav.open{display:flex !important;visibility:visible;opacity:1;pointer-events:auto}

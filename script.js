@@ -1,6 +1,34 @@
 const intro=document.getElementById('siteIntro');
 
 /* =========================================================
+   DEVICE MODE DETECTION
+   Android Chrome's "Desktop site" can expose a desktop-sized CSS
+   viewport even on a phone.  Use the physical screen width + touch
+   capability so the mobile navigation/layout still works there.
+   ========================================================= */
+(function setupDeviceMode(){
+  const root=document.documentElement;
+  const touch=('ontouchstart' in window) || navigator.maxTouchPoints>0;
+  const screenWidth=Math.min(
+    Number(window.screen?.width || 9999),
+    Number(window.screen?.height || 9999)
+  );
+  const phone=touch && screenWidth<=600;
+  const tablet=touch && !phone && screenWidth<=1100;
+  root.classList.toggle('bca-touch',touch);
+  root.classList.toggle('bca-phone',phone);
+  root.classList.toggle('bca-tablet',tablet);
+  const refresh=()=>{
+    const w=Math.min(Number(window.innerWidth||9999),Number(window.screen?.width||9999));
+    const isPhone=touch && w<=600;
+    const isTablet=touch && !isPhone && w<=1100;
+    root.classList.toggle('bca-phone',isPhone);
+    root.classList.toggle('bca-tablet',isTablet);
+  };
+  window.addEventListener('resize',refresh,{passive:true});
+})();
+
+/* =========================================================
    BLUE CHAIN AQUA — INTRO EXPERIENCE
    Keep the intro independent from the rest of the page so a
    map/API/AI error can never break Skip Intro or sound playback.

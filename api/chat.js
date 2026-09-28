@@ -69,6 +69,10 @@ export default async function handler(req, res) {
     }
 
     const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+    const requestedLanguage = String(body.language || 'English').trim();
+    const languageName = ['English', 'Telugu', 'Hindi'].includes(requestedLanguage) ? requestedLanguage : 'English';
+    const languageRule = `\n\nLANGUAGE RULE: Answer ONLY in ${languageName}. If Telugu is selected, use natural Telugu script (తెలుగు). If Hindi is selected, use natural Devanagari script (हिन्दी). Do not switch languages because the user asked in another language.`;
+    const effectiveSystemPrompt = SYSTEM_PROMPT + languageRule;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -77,7 +81,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...safeMessages],
+        messages: [{ role: 'system', content: effectiveSystemPrompt }, ...safeMessages],
         temperature: 0.3,
         max_completion_tokens: 900
       })

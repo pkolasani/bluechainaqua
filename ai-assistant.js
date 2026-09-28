@@ -35,6 +35,7 @@
     var busy = false;
     var recording = false;
     var mediaRecorder = null;
+    var speechRecognition = null;
     var audioChunks = [];
     var voiceOutput = true;
     var currentAudio = null;
@@ -50,6 +51,10 @@
       if (currentAudio) {
         try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {}
         currentAudio = null;
+      }
+      if (speechRecognition) {
+        try { speechRecognition.onend = null; speechRecognition.stop(); } catch (e) {}
+        speechRecognition = null;
       }
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         try { mediaRecorder.stop(); } catch (e) {}
@@ -369,10 +374,77 @@
       return String(data.text || '').trim();
     }
 
+    function startSpeechRecognition() {
+      var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Recognition) return false;
+
+      try {
+        var recognition = new Recognition();
+        speechRecognition = recognition;
+        recognition.lang = selectedLangCode();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recording = true;
+        mic.classList.add('recording');
+        mic.textContent = '⏹️';
+        mic.setAttribute('aria-label', 'Stop listening');
+        setVoiceStatus(localized[language.value].listening);
+
+        recognition.onresult = function (event) {
+          var transcript = '';
+          for (var i = event.resultIndex || 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript || '';
+          }
+          transcript = transcript.trim();
+          if (transcript) {
+            input.value = transcript;
+            setVoiceStatus('✓ ' + transcript);
+            ask(transcript);
+          } else {
+            setVoiceStatus(localized[language.value].noSpeech);
+          }
+        };
+
+        recognition.onerror = function (event) {
+          console.warn('Browser speech recognition error:', event.error);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setVoiceStatus(localized[language.value].micError);
+          } else if (event.error === 'no-speech') {
+            setVoiceStatus(localized[language.value].noSpeech);
+          } else {
+            setVoiceStatus('Voice recognition failed. Please try again.');
+          }
+        };
+
+        recognition.onend = function () {
+          recording = false;
+          speechRecognition = null;
+          mic.classList.remove('recording');
+          mic.textContent = '🎙️';
+          mic.setAttribute('aria-label', 'Speak your question');
+        };
+
+        recognition.start();
+        return true;
+      } catch (err) {
+        console.warn('Browser speech recognition could not start:', err);
+        speechRecognition = null;
+        recording = false;
+        return false;
+      }
+    }
+
     async function startRecording() {
       if (recording || busy) return;
+
+      // Prefer native Chrome/Android speech recognition. It is much more
+      // reliable on phones than uploading a MediaRecorder WebM blob and it
+      // uses the currently selected English/Telugu/Hindi language directly.
+      if (startSpeechRecognition()) return;
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-        setVoiceStatus('Voice input is not supported by this browser. Please use Chrome or Edge.');
+        setVoiceStatus('Voice input is not supported by this browser. Please use Chrome or Edge over HTTPS.');
         return;
       }
 
@@ -429,6 +501,10 @@
     }
 
     function stopRecording() {
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch (e) {}
+        return;
+      }
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
       }
@@ -479,6 +555,7 @@
           },
           body: JSON.stringify({
             model: model,
+            language: selectedLanguage,
             messages: apiMessages,
             temperature: 0.3,
             max_completion_tokens: 900
