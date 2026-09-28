@@ -230,10 +230,11 @@ stageVideos.forEach((v,i)=>{
 
 stagePlay?.addEventListener('click',e=>{
   e.preventDefault();
-  const v=stageVideos[current<0?0:current];
-  if(!v)return;
-  if(v.paused) playStageVideo(v); else v.pause();
-  syncStageButton(v);
+  e.stopPropagation();
+
+  // Every tap moves to the next stage in sequence: 01 -> 02 -> ... -> 08 -> 01
+  const nextStage = current >= steps.length - 1 ? 0 : current + 1;
+  renderStep(nextStage,{play:true});
 });
 
 // Start with Stage 01 visible but frozen. Nothing changes when the page
@@ -241,7 +242,14 @@ stagePlay?.addEventListener('click',e=>{
 renderStep(0,{play:false});
 
 const menu=document.querySelector('.menu'),nav=document.querySelector('.header nav');
-menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close menu':'Open menu')});
+function toggleMobileMenu(event){
+  if(event){event.preventDefault();event.stopPropagation();}
+  if(!menu || !nav)return;
+  const open=nav.classList.toggle('open');
+  menu.setAttribute('aria-expanded',String(open));
+  menu.setAttribute('aria-label',open?'Close menu':'Open menu');
+}
+menu?.addEventListener('click',toggleMobileMenu);
 nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
   if (window.BCA_STOP_VOICE) window.BCA_STOP_VOICE();
   nav.classList.remove('open');

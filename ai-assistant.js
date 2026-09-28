@@ -273,21 +273,73 @@
 
     function speakText(text) {
       if (navigatingAway || !('speechSynthesis' in window) || !text) return;
-      try {
-        window.speechSynthesis.cancel();
-        var utter = new SpeechSynthesisUtterance(text);
-        utter.lang = selectedLangCode();
-        utter.rate = 0.96;
-        utter.pitch = 1;
-        var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-        var prefix = utter.lang.toLowerCase().split('-')[0];
-        var match = voices.find(function (v) {
-          return (v.lang || '').toLowerCase().startsWith(prefix);
-        });
-        if (match) utter.voice = match;
-        window.speechSynthesis.speak(utter);
-      } catch (e) {
-        console.warn('Speech synthesis unavailable:', e);
+
+      var lang = selectedLangCode();
+
+      function speakWithCorrectVoice() {
+        try {
+          window.speechSynthesis.cancel();
+
+          var utter = new SpeechSynthesisUtterance(text);
+          utter.lang = lang;
+          utter.rate = 0.96;
+          utter.pitch = 1;
+
+          var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+          var wanted = String(lang || '').toLowerCase();
+          var voice = voices.find(function (v) {
+            return String(v.lang || '').toLowerCase() === wanted;
+          });
+
+          if (!voice) {
+            var languageCode = wanted.split('-')[0];
+            voice = voices.find(function (v) {
+              return String(v.lang || '').toLowerCase().split('-')[0] === languageCode;
+            });
+          }
+
+          if (voice) {
+            utter.voice = voice;
+            utter.lang = voice.lang;
+          }
+
+          utter.onstart = function () {
+            setVoiceStatus(
+              language.value === 'Telugu'
+                ? '🔊 తెలుగు వాయిస్‌లో మాట్లాడుతోంది…'
+                : language.value === 'Hindi'
+                  ? '🔊 हिन्दी आवाज़ में बोल रहा है…'
+                  : '🔊 Speaking in English…'
+            );
+          };
+
+          utter.onend = function () {
+            if (!navigatingAway) setVoiceStatus(localized[language.value].changed);
+          };
+
+          utter.onerror = function (event) {
+            console.warn('Speech synthesis error:', event);
+          };
+
+          window.speechSynthesis.speak(utter);
+        } catch (e) {
+          console.warn('Speech synthesis unavailable:', e);
+        }
+      }
+
+      var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+      if (voices && voices.length) {
+        speakWithCorrectVoice();
+      } else {
+        var onVoicesChanged = function () {
+          window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+          if (!navigatingAway) speakWithCorrectVoice();
+        };
+        window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+
+        setTimeout(function () {
+          if (!navigatingAway && !window.speechSynthesis.speaking) speakWithCorrectVoice();
+        }, 500);
       }
     }
 
