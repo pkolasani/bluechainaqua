@@ -27,3 +27,9 @@ Voice output:
 - A speaker button also appears beside each AI answer so you can replay it.
 
 Note: Groq Whisper is used for multilingual speech-to-text. The browser's built-in speech synthesis is used for spoken answers because Groq's current hosted TTS models support English and Arabic, not Telugu/Hindi.
+
+MOBILE VOICE OUTPUT UPDATE
+- Answers are split into short speech chunks so Android Chrome does not truncate long replies.
+- Markdown/URLs are cleaned before speech.
+- Telugu/Hindi voice selection prefers a matching installed voice.
+- Test on HTTPS, not file://.

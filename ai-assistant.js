@@ -40,13 +40,17 @@
     var voiceOutput = true;
     var currentAudio = null;
     var navigatingAway = false;
+    var speechRunId = 0;
+    var speechTimer = null;
 
     // Stop every active voice/recording operation. This is intentionally exposed
     // so navigation and page lifecycle handlers can call it too.
     function stopAllVoice() {
       navigatingAway = true;
+      speechRunId += 1;
+      if (speechTimer) { try { clearTimeout(speechTimer); } catch (e) {} speechTimer = null; }
       if ('speechSynthesis' in window) {
-        try { window.speechSynthesis.cancel(); } catch (e) {}
+        try { window.speechSynthesis.cancel(); window.speechSynthesis.resume(); } catch (e) {}
       }
       if (currentAudio) {
         try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {}
@@ -276,75 +280,96 @@
       if (voiceStatus) voiceStatus.textContent = text;
     }
 
+    function speechCleanText(text) {
+      return String(text || '')
+        .replace(/https?:\/\/\S+/gi, '')
+        .replace(/`{1,3}/g, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        .replace(/^\s*#{1,6}\s*/gm, '')
+        .replace(/^\s*[-*•]\s+/gm, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function speechChunks(text, maxLen) {
+      var clean = speechCleanText(text);
+      if (!clean) return [];
+      maxLen = maxLen || 220;
+      var sentences = clean.match(/[^.!?。！？]+[.!?。！？]+|[^.!?。！？]+$/g) || [clean];
+      var chunks = [], current = '';
+      sentences.forEach(function (sentence) {
+        sentence = sentence.trim();
+        if (!sentence) return;
+        if (!current) { current = sentence; return; }
+        if ((current + ' ' + sentence).length <= maxLen) current += ' ' + sentence;
+        else { chunks.push(current); current = sentence; }
+      });
+      if (current) chunks.push(current);
+      return chunks;
+    }
+
+    function pickSpeechVoice(lang, voices) {
+      var wanted = String(lang || '').toLowerCase();
+      var base = wanted.split('-')[0];
+      var exact = voices.find(function (v) { return String(v.lang || '').toLowerCase() === wanted; });
+      if (exact) return exact;
+      var sameLanguage = voices.filter(function (v) { return String(v.lang || '').toLowerCase().split('-')[0] === base; });
+      if (!sameLanguage.length) return null;
+      var preferredName = base === 'te' ? /telugu|te[-_ ]?in|google.*telugu/i : base === 'hi' ? /hindi|hi[-_ ]?in|google.*hindi/i : /english|en[-_ ]?in/i;
+      return sameLanguage.find(function (v) { return preferredName.test(String(v.name || '')); }) || sameLanguage[0];
+    }
+
     function speakText(text) {
       if (navigatingAway || !('speechSynthesis' in window) || !text) return;
-
       var lang = selectedLangCode();
+      var runId = ++speechRunId;
+      if (speechTimer) { try { clearTimeout(speechTimer); } catch (e) {} speechTimer = null; }
+      try { window.speechSynthesis.cancel(); window.speechSynthesis.resume(); } catch (e) {}
+      var chunks = speechChunks(text, 220);
+      if (!chunks.length) return;
 
-      function speakWithCorrectVoice() {
-        try {
-          window.speechSynthesis.cancel();
-
-          var utter = new SpeechSynthesisUtterance(text);
-          utter.lang = lang;
-          utter.rate = 0.96;
-          utter.pitch = 1;
-
-          var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-          var wanted = String(lang || '').toLowerCase();
-          var voice = voices.find(function (v) {
-            return String(v.lang || '').toLowerCase() === wanted;
-          });
-
-          if (!voice) {
-            var languageCode = wanted.split('-')[0];
-            voice = voices.find(function (v) {
-              return String(v.lang || '').toLowerCase().split('-')[0] === languageCode;
-            });
-          }
-
-          if (voice) {
-            utter.voice = voice;
-            utter.lang = voice.lang;
-          }
-
-          utter.onstart = function () {
-            setVoiceStatus(
-              language.value === 'Telugu'
-                ? '🔊 తెలుగు వాయిస్‌లో మాట్లాడుతోంది…'
-                : language.value === 'Hindi'
-                  ? '🔊 हिन्दी आवाज़ में बोल रहा है…'
-                  : '🔊 Speaking in English…'
-            );
-          };
-
-          utter.onend = function () {
-            if (!navigatingAway) setVoiceStatus(localized[language.value].changed);
-          };
-
-          utter.onerror = function (event) {
-            console.warn('Speech synthesis error:', event);
-          };
-
-          window.speechSynthesis.speak(utter);
-        } catch (e) {
-          console.warn('Speech synthesis unavailable:', e);
-        }
+      function speakChunk(index) {
+        if (navigatingAway || runId !== speechRunId) return;
+        if (index >= chunks.length) { setVoiceStatus(localized[language.value].changed); return; }
+        var utter = new SpeechSynthesisUtterance(chunks[index]);
+        utter.lang = lang; utter.rate = 0.92; utter.pitch = 1; utter.volume = 1;
+        var voice = pickSpeechVoice(lang, window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : []);
+        if (voice) { utter.voice = voice; utter.lang = voice.lang || lang; }
+        utter.onstart = function () {
+          if (index === 0) setVoiceStatus(language.value === 'Telugu' ? '🔊 తెలుగు వాయిస్‌లో సమాధానం చదువుతోంది…' : language.value === 'Hindi' ? '🔊 हिन्दी आवाज़ में उत्तर पढ़ रहा है…' : '🔊 Reading the answer in English…');
+        };
+        utter.onend = function () {
+          if (runId !== speechRunId || navigatingAway) return;
+          speechTimer = setTimeout(function () { speakChunk(index + 1); }, 70);
+        };
+        utter.onerror = function (event) {
+          if (runId !== speechRunId || navigatingAway) return;
+          if (event && (event.error === 'canceled' || event.error === 'interrupted')) return;
+          console.warn('Speech synthesis error:', event);
+          speechTimer = setTimeout(function () { speakChunk(index + 1); }, 120);
+        };
+        try { window.speechSynthesis.resume(); window.speechSynthesis.speak(utter); }
+        catch (e) { console.warn('Speech synthesis unavailable:', e); setVoiceStatus('Voice output is unavailable in this browser.'); }
       }
 
       var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-      if (voices && voices.length) {
-        speakWithCorrectVoice();
-      } else {
+      if (voices.length) { speakChunk(0); }
+      else {
+        var started = false;
         var onVoicesChanged = function () {
+          if (started) return; started = true;
           window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-          if (!navigatingAway) speakWithCorrectVoice();
+          if (!navigatingAway && runId === speechRunId) speakChunk(0);
         };
         window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
-
-        setTimeout(function () {
-          if (!navigatingAway && !window.speechSynthesis.speaking) speakWithCorrectVoice();
-        }, 500);
+        speechTimer = setTimeout(function () {
+          if (started) return; started = true;
+          window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+          if (!navigatingAway && runId === speechRunId) speakChunk(0);
+        }, 800);
       }
     }
 
